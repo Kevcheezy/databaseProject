@@ -151,6 +151,38 @@ public class Customer {
 		}		
 	}
 	
+	
+	// 8) Movie info router
+	public void movieInfo(Scanner sc) throws SQLException{
+        System.out.println("|-------------------------------------------------------|");
+        System.out.println("|                   Movie Menu:                         |");
+        System.out.println("|                                                       |");
+        System.out.println("| 1.) Display movie information                         |");
+        System.out.println("| 2.) Top movies between certain time                   |");
+        System.out.println("| 3.) Display all reviews for a movie                   |");
+        System.out.println("--------------------------------------------------------");
+        System.out.print("Enter option: ");
+        
+        int choice = sc.nextInt();
+        switch (choice){
+        	case 1:
+        		showMovies(sc);
+        		break;
+        	case 2:
+        		System.out.print("Enter begin year: ");
+        		int beginYear = sc.nextInt();
+        		System.out.print("Enter end year: ");
+        		int endYear = sc.nextInt();
+        		moviesBtwnTime(sc,beginYear,endYear);
+        		break;
+        	case 3:
+        		displayReviews(sc);
+        		break;
+        	default:
+        		System.out.println("Invalid option!");
+        }
+	}
+	
 	// 8a) List all movie information
 	public void showMovies(Scanner sc) throws SQLException{
 		Connection con = null;
@@ -216,4 +248,102 @@ public class Customer {
 			}
 		}		
 	}
+	
+	// 8b) Display top movies within time interval
+	public void moviesBtwnTime(Scanner sc, int beginYear, int endYear) throws SQLException {
+		// Send request query to database getting current market account balance of user
+		String query = "SELECT title FROM Movies WHERE rating = 5 && production_year >= ? && production_year <= ?";
+		Connection con = null;
+		PreparedStatement stm = null;
+		System.out.println();
+		try {
+			MySQLDB db = new MySQLDB();
+			con = db.getMoviesDBConnection();
+			stm = con.prepareStatement(query);
+			stm.setInt(1,beginYear);
+			stm.setInt(2, endYear);
+			ResultSet rs = stm.executeQuery();
+			String title = "";
+			while (rs.next()){
+				title = rs.getString("title");
+				System.out.println("Movie title: " + title);
+			}
+		} catch (SQLException e){
+			
+			System.out.println(e.getMessage());
+			
+		} finally {
+			if (stm != null){
+				stm.close();
+			}
+			if (con != null){
+				con.close();
+			}
+		}		
+	}
+	
+	// 8c) Display all reviews for a given movie
+	public void displayReviews(Scanner sc) throws SQLException{
+		Connection con = null;
+		PreparedStatement stm = null;
+		PreparedStatement stm1 = null;
+		
+		// Give menu of movies to choose from
+		String query = "SELECT id,title FROM Movies";
+		try {
+			MySQLDB db = new MySQLDB();
+			con = db.getMoviesDBConnection();
+			stm = con.prepareStatement(query);
+			ResultSet rs = stm.executeQuery();
+			Map<Integer, String> moviesMap = new HashMap<Integer,String>();
+			
+			String title = "";
+			int movieID = -1;
+			
+			while (rs.next()){
+				movieID = rs.getInt("id");
+				title = rs.getString("title");
+				moviesMap.put(movieID, title);
+			}
+			
+			for(int i=1; i<= moviesMap.size(); i++){
+				System.out.println(i + ") " + moviesMap.get(i));
+			}
+			
+			// Pick movie to display
+			System.out.println();
+			System.out.print("Enter index of movie to display details : ");
+			int choice = sc.nextInt();
+			
+			// Get reviews of that movie
+			query = "SELECT author,review FROM Reviews WHERE movie_id = ?";
+			stm1 = con.prepareStatement(query);
+			stm1.setInt(1,choice);
+			rs = stm1.executeQuery();
+			String author = "";
+			String review = "";
+			
+			System.out.println();
+			System.out.println("For movie title: " + moviesMap.get(choice));
+			while (rs.next()){
+				author = rs.getString("author");
+				review = rs.getString("review");
+				System.out.println(author + " gave the review: " + review);
+			}
+			System.out.println();
+		} catch (SQLException e){
+			System.out.println(e.getMessage());
+		} finally {
+			if (stm != null){
+				stm.close();
+			}
+			if (stm1 != null){
+				stm1.close();
+			}
+			if (con != null){
+				con.close();
+			}
+		}	
+	}
+	
 }

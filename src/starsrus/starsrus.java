@@ -110,7 +110,7 @@ public class starsrus {
 	            	
 	        		break;
 	        	case 8:
-	        		user.showMovies(sc);
+	        		user.movieInfo(sc);
 	        		break;
 	        	case 9:
 	            	keepRunning = false;

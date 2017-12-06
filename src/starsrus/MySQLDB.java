@@ -4,7 +4,7 @@ import java.sql.*;
 public class MySQLDB {
 	
 	// DB info
-	public static final String HOST = "jdbc:mysql://cs174a.engr.ucsb.edu:3306/kevinchanDB";
+	public static String HOST = "jdbc:mysql://cs174a.engr.ucsb.edu:3306/kevinchanDB";
 	public static final String USER = "kevinchan";
 	public static final String PWD = "651";
 	
@@ -27,11 +27,11 @@ public class MySQLDB {
 	        } 
 	       return connection;
 	}		
-		
+
 	
-	public Statement getDBStatement() throws SQLException{
+	public Connection getMoviesDBConnection() throws SQLException{
+		  String HOST = "jdbc:mysql://cs174a.engr.ucsb.edu:3306/moviesDB";
 	      Connection connection = null;
-	      Statement statement = null;
 	        try {
 	            Class.forName("com.mysql.jdbc.Driver");
 	        } catch (ClassNotFoundException e) {
@@ -40,22 +40,13 @@ public class MySQLDB {
 
 	        try {
 	            connection = DriverManager.getConnection(HOST, USER, PWD);
-	            statement = connection.createStatement();
-	            //ResultSet resultSet = statement.executeQuery(QUERY);
-	            return statement;
+	            return connection;
 
 	        } catch (SQLException e) {
 	            e.printStackTrace();
 	            
-	        } finally {
-	            if (statement != null) {
-	                statement.close();
-	            }
+	        } 
+	       return connection;
+	}		
 
-	            if (connection != null) {
-	                connection.close();
-	            }
-	        }
-	       return statement;
-	}
 }

@@ -1,8 +1,7 @@
 package starsrus;
 
-import java.sql.*;
-import java.util.Scanner;
-import java.lang.StringBuilder;
+import java.sql.*; 
+import java.util.*;
 public class Customer {
 	
 	// User information
@@ -19,114 +18,38 @@ public class Customer {
 		
 	}
 	
-	// Constructor for login
-	public Customer(String u, String p){
-		username = u;
-		password = p;
-	}
-	
-	// Helper func that wraps values with '' for SQL queries
-	public String wrapValue(String s){
-		StringBuilder _sb = new StringBuilder(s);
-		_sb.insert(0,  "'");
-		_sb.append("'");
-		return _sb.toString();
-	}
-	
-	// Send query to DB
-	public ResultSet queryDB(String query) throws SQLException{
-		ResultSet resultSet = null;
-        Connection connection = null;
-        Statement statement = null;
-        try {
-            Class.forName("com.mysql.jdbc.Driver");
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        }
-
-        try {
-            connection = DriverManager.getConnection(HOST, USER, PWD);
-            statement = connection.createStatement();
-            resultSet = statement.executeQuery(query);
-            return resultSet;
-            
-        } catch (SQLException e) {
-            e.printStackTrace();
-            
-        } finally {
-            if (statement != null) {
-                statement.close();
-            }
-
-            if (connection != null) {
-                connection.close();
-            }
-        }
-        return resultSet;
-	}
-	
-	// Register function
-	public void register(Scanner sc) throws SQLException{
+	// 1) Deposit into market account
+	public void deposit(Integer amt) throws SQLException {
+		System.out.println("Depositing " + amt.toString() + "...");
 		
-		// Gather information from user
-		System.out.print("Enter username: ");
-		sc.nextLine();
-		String newUsername = sc.nextLine();
-		System.out.print("Enter password: ");
-		String newPassword = sc.nextLine();
-		System.out.print("Enter name: ");
-		String newName = sc.nextLine();
-		System.out.print("Enter tax ID number: ");
-		String newTaxID = sc.nextLine();
-		System.out.print("Enter phone number: ");
-		String newPhone = sc.nextLine();
-		System.out.print("Enter email: ");
-		String newEmail = sc.nextLine();
-		System.out.print("Enter state: ");
-		String newState = sc.nextLine();
-		
-		Integer numNewTaxID = Integer.valueOf(newTaxID);
-		// Prepare query data
-		/*
-		newUsername = wrapValue(newUsername);
-		newPassword = wrapValue(newPassword);
-		newName = wrapValue(newName);
-		newTaxID = wrapValue(newTaxID);
-		newPhone = wrapValue(newPhone);
-		newEmail = wrapValue(newEmail);
-		newState = wrapValue(newState);
-		
-		
-		// Create query and send to db
-		String QUERY = "INSERT INTO customers VALUES (" + newUsername + ","
-													+ newPassword + ","
-													+ newName + ","
-													+ newTaxID + ","
-													+ newPhone + ","
-													+ newEmail + ","
-													+ newState + ")";
-		ResultSet resultSet = queryDB(QUERY);
-		*/
-		
-		String QUERY = "INSERT INTO customers " + 
-						"(username, password, name, taxid, phone_number, email, state) VALUES "
-						+ "(?,?,?,?,?,?,?)";
-		
+		// Send request query to database getting current market account balance of user
+		String query = "SELECT balance,aid FROM market_accounts WHERE username = ?";
 		Connection con = null;
 		PreparedStatement stm = null;
+		PreparedStatement stm2 = null;
 		try {
 			MySQLDB db = new MySQLDB();
 			con = db.getDBConnection();
-			stm = con.prepareStatement(QUERY);
-			stm.setString(1,newUsername);
-			stm.setString(2, newPassword);
-			stm.setString(3,newName);
-			stm.setInt(4,numNewTaxID);
-			stm.setString(5,newPhone);
-			stm.setString(6, newEmail);
-			stm.setString(7, newState);
+			stm = con.prepareStatement(query);
+			stm.setString(1,this.username);
+			ResultSet rs = stm.executeQuery();
+			int userBalance = 0;
+			int aid = -1;
+			while (rs.next()){
+				userBalance = rs.getInt("balance");
+				aid = rs.getInt("aid");
+			}
+			// Increase balance by amt
+			System.out.println("Current market account balance: " + userBalance);
+			userBalance = userBalance + amt;
+			// Update database using aid and new balance amount
+			query = "UPDATE market_accounts SET balance = ? WHERE aid = ?";
+			stm2 = con.prepareStatement(query);
+			stm2.setInt(1,userBalance);
+			stm2.setInt(2, aid);
+			stm2.executeUpdate();
+			System.out.println("New market account balance is: " + userBalance);
 			
-			stm.executeUpdate();
 		} catch (SQLException e){
 			
 			System.out.println(e.getMessage());
@@ -135,69 +58,162 @@ public class Customer {
 			if (stm != null){
 				stm.close();
 			}
+			if (stm2 != null){
+				stm2.close();
+			}
 			if (con != null){
 				con.close();
 			}
 		}
 	}
 	
-	// Login function
-	public boolean login(Scanner sc) throws SQLException {
-		
-		// Get info from user
-		System.out.print("Enter username:  ");
-		sc.nextLine();
-		String loginUsername = sc.nextLine();
-		System.out.print("Enter password:  ");
-		String loginPassword = sc.nextLine();
-        
-        // Update customer
-        this.username = loginUsername;
-        this.password = loginPassword;
-        
-		String QUERY = "SELECT * from customers WHERE username='" + loginUsername + "' && password='" + loginPassword + "'";
-        Connection connection = null;
-        Statement statement = null;
-        try {
-            Class.forName("com.mysql.jdbc.Driver");
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        }
-
-        try {
-            connection = DriverManager.getConnection(HOST, USER, PWD);
-            statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery(QUERY);
-            
-            String resultUsername = "";
-            String resultPassword = "";
-            while (resultSet.next()) {
-                resultUsername = resultSet.getString("username");
-                resultPassword = resultSet.getString("password");
-
-            }
-            // Compare username and password
-            if (resultUsername.equals(username) && resultPassword.equals(password)){
-            	System.out.println("Successful login!");
-            	return true;
-            }
-            
-        } catch (SQLException e) {
-            e.printStackTrace();
-            
-        } finally {
-            if (statement != null) {
-                statement.close();
-            }
-
-            if (connection != null) {
-                connection.close();
-            }
-        }
-        System.out.println("Unsuccessful login, try again!");
-        return false;
+	// 2) Withdraw from market account
+	public void withdraw(Integer amt) throws SQLException{
+		System.out.println("Withdrawing " + amt.toString() + "...");
+		// Send request query to database getting current market account balance of user
+		String query = "SELECT balance,aid FROM market_accounts WHERE username = ?";
+		Connection con = null;
+		PreparedStatement stm = null;
+		PreparedStatement stm2 = null;
+		try {
+			MySQLDB db = new MySQLDB();
+			con = db.getDBConnection();
+			stm = con.prepareStatement(query);
+			stm.setString(1,this.username);
+			ResultSet rs = stm.executeQuery();
+			int userBalance = 0;
+			int aid = -1;
+			while (rs.next()){
+				userBalance = rs.getInt("balance");
+				aid = rs.getInt("aid");
+			}
+			// Increase balance by amount
+			System.out.println("Current market account balance: " + userBalance);
+			userBalance = userBalance - amt;
+			if (userBalance < 0){
+				System.out.println("ERROR: BALANCE BELOW $0!");
+				return;
+			}
+			// Update database using aid and new balance amount
+			query = "UPDATE market_accounts SET balance = ? WHERE aid = ?";
+			stm2 = con.prepareStatement(query);
+			stm2.setInt(1,userBalance);
+			stm2.setInt(2, aid);
+			stm2.executeUpdate();
+			System.out.println("New market account balance: " + userBalance);
+			
+		} catch (SQLException e){
+			
+			System.out.println(e.getMessage());
+			
+		} finally {
+			if (stm != null){
+				stm.close();
+			}
+			if (stm2 != null){
+				stm2.close();
+			}
+			if (con != null){
+				con.close();
+			}
+		}		
 	}
 	
-	
+	// 5) Show market account balance
+	public void showMarketAccountBalance() throws SQLException{
+		// Send request query to database getting current market account balance of user
+		String query = "SELECT balance,aid FROM market_accounts WHERE username = ?";
+		Connection con = null;
+		PreparedStatement stm = null;
+		try {
+			MySQLDB db = new MySQLDB();
+			con = db.getDBConnection();
+			stm = con.prepareStatement(query);
+			stm.setString(1,this.username);
+			ResultSet rs = stm.executeQuery();
+			int userBalance = 0;
+			while (rs.next()){
+				userBalance = rs.getInt("balance");
+			}
+			System.out.println("Current market account balance: " + userBalance);
+		} catch (SQLException e){
+			
+			System.out.println(e.getMessage());
+			
+		} finally {
+			if (stm != null){
+				stm.close();
+			}
 
+			if (con != null){
+				con.close();
+			}
+		}		
+	}
+	
+	// 8a) List all movie information
+	public void showMovies(Scanner sc) throws SQLException{
+		Connection con = null;
+		PreparedStatement stm = null;
+		PreparedStatement stm1 = null;
+		String query = "SELECT id,title FROM Movies";
+		try {
+			MySQLDB db = new MySQLDB();
+			con = db.getMoviesDBConnection();
+			stm = con.prepareStatement(query);
+			ResultSet rs = stm.executeQuery();
+			Map<Integer, String> moviesMap = new HashMap<Integer,String>();
+			
+			String title = "";
+			int movieID = -1;
+			float rating = 0.0f;
+			int prodYear = 0;
+			
+			while (rs.next()){
+				movieID = rs.getInt("id");
+				title = rs.getString("title");
+				moviesMap.put(movieID, title);
+			}
+			
+			// Display movies to choose from
+			for(int i=1; i<= moviesMap.size(); i++){
+				System.out.println(i + ") " + moviesMap.get(i));
+			}
+			
+			// Pick movie to display
+			System.out.print("Enter index of movie to display details : ");
+			int choice = sc.nextInt();
+			query = "SELECT * FROM Movies WHERE id = ?";
+			stm1 = con.prepareStatement(query);
+			stm1.setInt(1,choice);
+			rs = stm1.executeQuery();
+			while (rs.next()){
+				movieID = rs.getInt("id");
+				title = rs.getString("title");
+				rating = rs.getFloat("rating");
+				prodYear = rs.getInt("production_year");
+			}
+			
+			// Display movie results
+			System.out.println();
+			System.out.println("Movie ID: " + movieID);
+			System.out.println("Movie title: " + title);
+			System.out.println("Movie rating: " + rating);
+			System.out.println("Production Year: " + prodYear);
+			System.out.println();
+			
+		} catch (SQLException e){
+			System.out.println(e.getMessage());
+		} finally {
+			if (stm != null){
+				stm.close();
+			}
+			if (stm1 != null){
+				stm1.close();
+			}
+			if (con != null){
+				con.close();
+			}
+		}		
+	}
 }

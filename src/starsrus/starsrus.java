@@ -123,7 +123,19 @@ public class starsrus {
 	
 	// Manager Interface
 	public static void managerInterface() throws SQLException{
-		System.out.println("Welcome to the manager interface!");
+        System.out.println("|-------------------------------------------------------|");
+        System.out.println("|                   Manager Menu:                       |");
+        System.out.println("|                                                       |");
+        System.out.println("| 1.) Set a new date to be today's date                 |");
+        System.out.println("| 2.) Withdraw from market account                      |");
+        System.out.println("| 3.) Buy stock                                         |");
+        System.out.println("| 4.) Sell stock                                        |");
+        System.out.println("| 5.) Show market account balance                       |");
+        System.out.println("| 6.) Show stock account transaction history            |");
+        System.out.println("| 7.) List current price of a stock and actor profile   |");
+        System.out.println("| 8.) List movie information                            |");
+        System.out.println("| 9.) Exit                                              |");
+        System.out.println("--------------------------------------------------------");
 	}
 	
 	// Login function for trader/manager

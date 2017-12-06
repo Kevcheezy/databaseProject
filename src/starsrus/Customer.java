@@ -27,6 +27,7 @@ public class Customer {
 		Connection con = null;
 		PreparedStatement stm = null;
 		PreparedStatement stm2 = null;
+		PreparedStatement stm3 = null;
 		try {
 			MySQLDB db = new MySQLDB();
 			con = db.getDBConnection();
@@ -39,7 +40,7 @@ public class Customer {
 				userBalance = rs.getInt("balance");
 				aid = rs.getInt("aid");
 			}
-			// Increase balance by amt
+			// Increase balance by amount
 			System.out.println("Current market account balance: " + userBalance);
 			userBalance = userBalance + amt;
 			// Update database using aid and new balance amount
@@ -49,6 +50,8 @@ public class Customer {
 			stm2.setInt(2, aid);
 			stm2.executeUpdate();
 			System.out.println("New market account balance is: " + userBalance);
+			// Insert a new record into transaction table for this deposit
+			query = "INSERT INTO transactions (aid, type, date, amount) VALUES (?,?,?,?)";
 			
 		} catch (SQLException e){
 			
@@ -60,6 +63,9 @@ public class Customer {
 			}
 			if (stm2 != null){
 				stm2.close();
+			}
+			if (stm3 != null){
+				stm3.close();
 			}
 			if (con != null){
 				con.close();

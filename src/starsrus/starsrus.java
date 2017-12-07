@@ -22,7 +22,7 @@ public class starsrus {
 			}
 			// Manager Interface
 			if (userInput == 2){
-				managerInterface();
+				managerInterface(sc);
 			}
 			if (userInput == 3){
 				keepRunning = false;
@@ -95,19 +95,20 @@ public class starsrus {
             		user.withdraw(withdrawAmt);
 	        		break;
 	        	case 3:
-	            	
+	            	user.buyStock(sc);
 	        		break;
 	        	case 4:
 	            	
 	        		break;
 	        	case 5:
-	            	user.showMarketAccountBalance();
+	            	float balance = user.getMarketAccountBalance();
+	    			System.out.println("Current market account balance: " + balance);
 	        		break;
 	        	case 6:
-	            	
+	        		user.showStockTransactionHistory();
 	        		break;
 	        	case 7:
-	            	
+	        		user.showStockAndProfile(sc);
 	        		break;
 	        	case 8:
 	        		user.movieInfo(sc);
@@ -122,7 +123,7 @@ public class starsrus {
 	}
 	
 	// Manager Interface
-	public static void managerInterface() throws SQLException{
+	public static void managerInterface(Scanner sc) throws SQLException{
         System.out.println("|-------------------------------------------------------|");
         System.out.println("|                   Manager Menu:                       |");
         System.out.println("|                                                       |");
@@ -136,14 +137,22 @@ public class starsrus {
         System.out.println("| 8.) List movie information                            |");
         System.out.println("| 9.) Exit                                              |");
         System.out.println("--------------------------------------------------------");
+        
+        System.out.print("Enter choice: ");
+        int choice = sc.nextInt();
+        
+        switch(choice){
+        	case 1:
+    			MySQLDB db = new MySQLDB();
+    			db.setCurrentDate(sc);
+        		break;
+        
+        }
 	}
 	
 	// Login function for trader/manager
 	public static String login(Scanner sc, Customer customer, String person) throws SQLException {
 		String retVal = "";
-		String HOST = "jdbc:mysql://cs174a.engr.ucsb.edu:3306/kevinchanDB";
-		String USER = "kevinchan";
-		String PWD = "651";
 		
 		// Get info from user
 		System.out.print("Enter username:  ");
@@ -156,52 +165,44 @@ public class starsrus {
         customer.username = loginUsername;
         customer.password = loginPassword;
         
-		String QUERY = "SELECT * from customers WHERE username='" + loginUsername + "' && password='" + loginPassword + "'";
-        Connection connection = null;
-        Statement statement = null;
+        String query = "SELECT * from customers WHERE username = ? && password = ?";
+		Connection con = null;
+        PreparedStatement stm = null;
+        ResultSet rs = null;
+        
         try {
-            Class.forName("com.mysql.jdbc.Driver");
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        }
-
-        try {
-            connection = DriverManager.getConnection(HOST, USER, PWD);
-            statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery(QUERY);
+			MySQLDB db = new MySQLDB();
+			con = db.getDBConnection();
+			stm = con.prepareStatement(query);
+			stm.setString(1,loginUsername);
+			stm.setString(2, loginPassword);
             
+			rs = stm.executeQuery();
             String resultUsername = "";
             String resultPassword = "";
-            while (resultSet.next()) {
-                resultUsername = resultSet.getString("username");
-                resultPassword = resultSet.getString("password");
+            while (rs.next()) {
+                resultUsername = rs.getString("username");
+                resultPassword = rs.getString("password");
 
             }
+            
             // Compare user name and password
             if (resultUsername.equals(customer.username) && resultPassword.equals(customer.password)){
             	System.out.println("Successful login!");
             	retVal = resultUsername;
-            	return retVal;
             }
             
-        } catch (SQLException e) {
-            e.printStackTrace();
-            
-        } finally {
-            if (statement != null) {
-                statement.close();
-            }
-
-            if (connection != null) {
-                connection.close();
-            }
+        } catch (SQLException e) { e.printStackTrace();} 
+        finally {
+            if (stm != null) try { stm.close(); } catch (SQLException e) {}
+            if (con != null) try { con.close(); } catch (SQLException e) {}
+            if (rs != null) try { rs.close(); } catch (SQLException e) {}
         }
-        System.out.println("Unsuccessful login, try again!");
         return retVal;
 	}
 	
 	// Register function for trader/manager
-		public static void register(Scanner sc, String person) throws SQLException{
+	public static void register(Scanner sc, String person) throws SQLException{
 			
 			// Gather information from user
 			System.out.print("Enter username: ");
@@ -219,18 +220,24 @@ public class starsrus {
 			String newEmail = sc.nextLine();
 			System.out.print("Enter state: ");
 			String newState = sc.nextLine();
+			System.out.print("Enter ssn: ");
+			String newSSN = sc.nextLine();
+			System.out.print("Enter address: ");
+			String newAddress = sc.nextLine();
 			
 			Integer numNewTaxID = Integer.valueOf(newTaxID);
 
-			// Construct query and send to db
+			// Construct query and send to database
 			String QUERY = "INSERT INTO customers " + 
-							"(username, password, name, taxid, phone_number, email, state) VALUES "
-							+ "(?,?,?,?,?,?,?)";
+							"(username, password, name, taxid, phone_number, email, state, ssn, address) VALUES "
+							+ "(?,?,?,?,?,?,?,?,?)";
 			
 			Connection con = null;
 			PreparedStatement stm = null;
 			PreparedStatement stm1 = null;
 			PreparedStatement stm2 = null;
+			PreparedStatement stm3 = null;
+			PreparedStatement stm4 = null;
 			
 			try {
 				MySQLDB db = new MySQLDB();
@@ -243,23 +250,48 @@ public class starsrus {
 				stm.setString(5,newPhone);
 				stm.setString(6, newEmail);
 				stm.setString(7, newState);
+				stm.setString(8, newSSN);
+				stm.setString(9, newAddress);
 				stm.executeUpdate();
 				
+				
 				// Create new account
-				String accountQuery = "INSERT INTO accounts (account_type, username) VALUES (?,?)";
+				String accountQuery = "INSERT INTO accounts (account_type, username, taxID) VALUES (?,?,?)";
 				stm1 = con.prepareStatement(accountQuery);
 				stm1.setString(1, "market");
 				stm1.setString(2,newUsername);
+				stm1.setInt(3, numNewTaxID);
 				stm1.executeUpdate();
 				
+				
 				// Create new market account by updating from accounts table
-				String marketAccountQuery = "INSERT INTO market_accounts (aid,username) SELECT ac.aid, ac.username "
-						+ "FROM accounts ac WHERE NOT EXISTS (SELECT aid FROM market_accounts a2 WHERE a2.aid = ac.aid) "
+				String marketAccountQuery = "INSERT INTO market_accounts (aid,taxID) SELECT ac.aid, ac.taxID "
+						+ "FROM accounts ac WHERE NOT EXISTS (SELECT aid FROM market_accounts a2 WHERE a2.taxID = ac.taxID) "
 						+ "AND ac.account_type = 'market'";
 				stm2 = con.prepareStatement(marketAccountQuery);
 				stm2.executeUpdate();
 				
-				// Add new deposit transaction for user
+				// Get aid of newly generated account
+				String query = "SELECT aid FROM accounts WHERE username = ?";
+				stm4 = con.prepareStatement(query);
+				stm4.setString(1, newUsername);
+				ResultSet rs = stm4.executeQuery();
+				int aid = -1;
+				while(rs.next()){
+					aid = rs.getInt("aid");
+				}
+				
+				
+				// Insert a new record into transaction table for this deposit
+				query = "INSERT INTO transactions (aid, type, date, amount) VALUES (?,?,?,?)";
+				java.sql.Date sqlDate = db.getCurrentTime();
+				stm3 = con.prepareStatement(query);
+				stm3.setInt(1, aid);
+				stm3.setString(2, "deposit");
+				stm3.setDate(3, sqlDate);
+				stm3.setInt(4, 1000);
+				stm3.executeUpdate();
+				
 				
 			} catch (SQLException e){
 				
@@ -274,6 +306,12 @@ public class starsrus {
 				}
 				if (stm2 != null){
 					stm2.close();
+				}
+				if (stm3 != null){
+					stm3.close();
+				}
+				if (stm4 != null){
+					stm4.close();
 				}
 				if (con != null){
 					con.close();

@@ -191,6 +191,7 @@ public class starsrus {
 	        		break;
 	        		
 	        	case 5:
+	        		user.activeCustomers();
 	        		break;
 	        		
 	        	case 6:

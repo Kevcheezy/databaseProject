@@ -25,7 +25,6 @@ public class Manager {
 
 		try {
 			
-			
 			MySQLDB db = new MySQLDB();
 			con = db.getDBConnection();
 		
@@ -108,11 +107,12 @@ public class Manager {
 				while(rs.next()){
 					type = rs.getString("type");
 					amount = rs.getFloat("amount");
-					System.out.println(" 	- " + type + " of " + amount + "was made.");
+					System.out.println(" 	- " + type + " of " + amount + " was made");
 
 				}
 				
 				// Stock account
+				System.out.println("In stock account: ");
 				String stock_symbol = "";
 				int num_shares = 0;
 				float buy_price = 0.0f;
@@ -130,10 +130,10 @@ public class Manager {
 					buy_price = rs.getFloat("buy_price");
 					sell_price = rs.getFloat("sell_price");
 					if(type.equals("buy")){
-						System.out.println("buy detected");
+						System.out.println(" 	- " + type + " of " + num_shares + " of " + stock_symbol + " at " + buy_price + " was made");
 					}
 					if(type.equals("sell")){
-						System.out.println("sell detected");
+						System.out.println(" 	- " + type + " of " + num_shares + " of " + stock_symbol + " at " + sell_price + " was made");
 					}
 				}
 				
@@ -154,10 +154,52 @@ public class Manager {
             if (rs != null) try { rs.close(); } catch (SQLException e) {}
 		}
 	}
+	
 	// 5.) List active customers
+	public void activeCustomers() throws SQLException{
+		
+		Connection con = null;
+		PreparedStatement stm = null;
+		ResultSet rs = null;
+		
+		float userBalance = 0;
+		try {
+			MySQLDB db = new MySQLDB();
+			con = db.getDBConnection();
+		
+			// Get current month from 'general'
+			String query = "SELECT time_value FROM general WHERE id = 0";
+			stm = con.prepareStatement(query);
+			rs = stm.executeQuery();
+			java.sql.Date currentDate = null;
+			while(rs.next()){
+				currentDate = rs.getDate("time_value");
+			}
+			Calendar cal = Calendar.getInstance();
+			cal.setTime(currentDate);
+			int month = cal.get(Calendar.MONTH)+1;
+			int year = cal.get(Calendar.YEAR);
+			
+			
+			
+			
+		} catch (SQLException e){
+			
+			System.out.println(e.getMessage());
+			
+		} finally {
+            if (stm != null) try { stm.close(); } catch (SQLException e) {}
+            if (con != null) try { con.close(); } catch (SQLException e) {}
+            if (rs != null) try { rs.close(); } catch (SQLException e) {}
+		}
+	}
 	// 6.) Generate government DTER  
+	
 	// 7.) Customer report 
+	
 	// 8.) Delete transactions 
+	
 	// 9.) Open market for the day
+	
 	// 10.)Close market for the day 
 }

@@ -98,7 +98,7 @@ public class starsrus {
 	            	user.buyStock(sc);
 	        		break;
 	        	case 4:
-	            	
+	            	user.sellStock(sc);
 	        		break;
 	        	case 5:
 	            	float balance = user.getMarketAccountBalance();
@@ -128,7 +128,7 @@ public class starsrus {
         System.out.println("|                   Manager Menu:                       |");
         System.out.println("|                                                       |");
         System.out.println("| 1.) Set a new date to be today's date                 |");
-        System.out.println("| 2.) Withdraw from market account                      |");
+        System.out.println("| 2.) Set new price for stock                           |");
         System.out.println("| 3.) Buy stock                                         |");
         System.out.println("| 4.) Sell stock                                        |");
         System.out.println("| 5.) Show market account balance                       |");
@@ -146,7 +146,10 @@ public class starsrus {
     			MySQLDB db = new MySQLDB();
     			db.setCurrentDate(sc);
         		break;
-        
+        	case 2:
+        		MySQLDB db2 = new MySQLDB();
+        		db2.setCurrentPriceOfStock(sc);
+        		break;
         }
 	}
 	
@@ -318,7 +321,6 @@ public class starsrus {
 				}
 			}
 		}
-	
 	
 	// Main function
 	public static void main(String[] args) throws SQLException{

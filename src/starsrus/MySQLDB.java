@@ -86,18 +86,17 @@ public class MySQLDB {
 	// Set a new date to be today's date
 	public void setCurrentDate(Scanner sc) throws SQLException{
 		// Get desired date from user
-		System.out.println("Enter new date with format (YYYY-MM-DD): ");
+		System.out.print("Enter new date with format (YYYY-MM-DD): ");
 		sc.nextLine();
 		String newDate = sc.nextLine();
-		
+        Connection connection = null;
+        PreparedStatement statement = null;
 		// Prepare query and send to DB, updating the new date
        try {
             Class.forName("com.mysql.jdbc.Driver");
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         }
-        Connection connection = null;
-        PreparedStatement statement = null;
 		String QUERY = "UPDATE general SET time_value = ? WHERE id = 0";
         try {
             connection = DriverManager.getConnection(HOST, USER, PWD);
@@ -109,14 +108,47 @@ public class MySQLDB {
             e.printStackTrace();
             
         } finally {
-            if (statement != null) {
-                statement.close();
-            }
-
-            if (connection != null) {
-                connection.close();
-            }
+            if (statement != null) try { statement.close(); } catch (SQLException e) {}
+            if (connection != null) try { connection.close(); } catch (SQLException e) {}
         }
 	}
 
+	// Change current price of a stock
+	public void setCurrentPriceOfStock(Scanner sc) throws SQLException{
+		
+        Connection connection = null;
+        PreparedStatement statement = null;
+        String QUERY = "UPDATE actor_directors SET stock_price = ? WHERE stock_symbol = ?";
+        
+        // Get desired stock symbol from user
+		sc.nextLine();
+        System.out.print("Enter stock symbol: ");
+        String stock_symbol = sc.nextLine();
+        
+		// Get desired price from user
+		System.out.print("Enter new price: ");
+		Float newPrice = sc.nextFloat();
+		
+		// Prepare query and send to DB, updating the new date
+       try {
+            Class.forName("com.mysql.jdbc.Driver");
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+       
+        try {
+            connection = DriverManager.getConnection(HOST, USER, PWD);
+            statement = connection.prepareStatement(QUERY);
+            statement.setFloat(1,newPrice);
+            statement.setString(2, stock_symbol);
+            statement.executeUpdate();
+            
+        } catch (SQLException e) {
+            e.printStackTrace();
+            
+        } finally {
+            if (statement != null) try { statement.close(); } catch (SQLException e) {}
+            if (connection != null) try { connection.close(); } catch (SQLException e) {}
+        }
+	}
 }

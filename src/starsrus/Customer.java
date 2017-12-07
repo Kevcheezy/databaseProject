@@ -273,12 +273,16 @@ public class Customer {
 	}
 	
 	// 4) Sell stock
-	public void sellStock() throws SQLException{
+	public void sellStock(Scanner sc) throws SQLException{
+
 		
 		// Show user which stocks are in account
 		String query = "SELECT stock_symbol,amount_bought,bought_at FROM stock_accounts WHERE aid = ?";
 		Connection con = null;
 		PreparedStatement stm = null;
+		PreparedStatement stm1 = null;
+		PreparedStatement stm2 = null;
+		PreparedStatement stm3 = null;
 		ResultSet rs = null;
 		
 		try {
@@ -307,26 +311,81 @@ public class Customer {
 			}
 			
 			for(int i=1; i<=stock_symbolList.size(); i++){
-				System.out.println("")
+				System.out.println(i+") " + amount_boughtList.get(i-1) + " " + stock_symbolList.get(i-1) + " bought at " + bought_atList.get(i-1));
 			}
 			
+			// User chooses which stock to sell: list all in stock account
+			System.out.print("Enter index of stock to sell: ");
+			int choice = sc.nextInt();
+			
+			// User picks how many of stocks to sell
+			System.out.print("Quantity: ");
+			int numStocks = sc.nextInt();
+			
+			
+			String chosenStockSymbol = stock_symbolList.get(choice-1);
+			Float chosenBoughtAt = bought_atList.get(choice-1);
+			int chosenAmountBought = amount_boughtList.get(choice-1);
+			
+			// Make sure user has enough of the stocks to sell
+			// Calculate stocks remaining = amount_bought - numStocks
+
+			int stocksLeft = chosenAmountBought - numStocks;
+			if (stocksLeft < 0){
+				System.out.println("You do not have enough stocks.");
+			}
+			else{
+				// Update stocks remaining in stock account
+				query = "UPDATE stock_accounts SET amount_bought = ? WHERE stock_symbol = ?";
+				stm2 = con.prepareStatement(query);
+				stm2.setInt(1, stocksLeft);
+				stm2.setString(2,chosenStockSymbol);
+				stm2.executeUpdate();
+				
+				// Get current price of stock
+				query = "SELECT stock_price FROM actor_directors WHERE stock_symbol = ?";
+				stm1 = con.prepareStatement(query);
+				stm1.setString(1,chosenStockSymbol);
+				rs = stm1.executeQuery();
+				float stock_price = 0.0f;
+				while(rs.next()){
+					stock_price = rs.getFloat("stock_price");
+				}
+				
+				// Calculate and update earnings in transactions = (current price - bought_at) * numStocks - commission
+				float earnings = (stock_price - chosenBoughtAt) * numStocks - 20;
+				if(earnings >= 0){
+					query = "INSERT INTO transactions (aid,type,date,amount,stock_symbol,num_shares,sell_price) VALUES (?,?,?,?,?,?,?)";
+					stm3 = con.prepareStatement(query);
+					stm3.setInt(1, stockAID);
+					stm3.setString(2, "sell");
+					stm3.setDate(3, db.getCurrentTime());
+					stm3.setFloat(4, earnings);
+					stm3.setString(5, chosenStockSymbol);
+					stm3.setInt(6, numStocks);
+					stm3.setFloat(7, stock_price);
+					stm3.executeUpdate();
+					System.out.println("You earned:  " + earnings);
+					System.out.println();
+				}
+				else{
+					System.out.println("ERROR! Insufficient funds!");
+				}
+			}			
 		} catch (SQLException e){
 			
 			System.out.println(e.getMessage());
 			
 		} finally {
             if (stm != null) try { stm.close(); } catch (SQLException e) {}
+            if (stm1 != null) try { stm1.close(); } catch (SQLException e) {}
+            if (stm2 != null) try { stm2.close(); } catch (SQLException e) {}
+            if (stm3 != null) try { stm3.close(); } catch (SQLException e) {}
             if (con != null) try { con.close(); } catch (SQLException e) {}
             if (rs != null) try { rs.close(); } catch (SQLException e) {}
-		}
-		// User chooses which stock to sell: list all in stock account
-		// User picks how many of stocks to sell
-		// Make sure user has enough of the stocks to sell
-		// Calculate and update stocks remaining = amount_bought - numStocks
-		// Get current price of stock
-		// Calculate and update earnings in transactions = (current price - bought_at) * numStocks
-		
+		}		
 	}
+	
 	// 5) Show market account balance
 	public float getMarketAccountBalance() throws SQLException{
 		// Send request query to database getting current market account balance of user
@@ -489,7 +548,6 @@ public class Customer {
             if (rs != null) try { rs.close(); } catch (SQLException e) {}
 		}
 	}
-	
 	
 	// 8) Movie info router
 	public void movieInfo(Scanner sc) throws SQLException{

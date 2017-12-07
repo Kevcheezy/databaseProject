@@ -14,6 +14,7 @@ public class starsrus {
 		while(keepRunning){
 			// Welcome! Pick trader or manager interface
 			System.out.println("Welcome to StarsRUS!");
+			System.out.println();
 			System.out.print("Please enter 1 for trader interface, 2 for manager interface, or 3 to exit: ");
 			userInput = sc.nextInt();
 			// Trader Interface
@@ -35,7 +36,6 @@ public class starsrus {
 	public static void traderInterface(Scanner sc) throws SQLException{
 		Boolean keepRunning = true;
 		Customer user = new Customer();
-		
 		while(keepRunning){
 			// Login or register
 			System.out.println("Welcome to the trader interface!");
@@ -49,9 +49,9 @@ public class starsrus {
 				// Login
 			if (userInput == 2){
 				// Successful login
-				if(login(sc, user, "trader") != ""){
+				if(traderLogin(sc, user) != ""){
 					keepRunning = false;
-					traderMenu(sc,user);
+					traderMenu(sc, user);
 				}
 				// Unsuccessful login, loop back
 			}
@@ -124,37 +124,103 @@ public class starsrus {
 	
 	// Manager Interface
 	public static void managerInterface(Scanner sc) throws SQLException{
-        System.out.println("|-------------------------------------------------------|");
-        System.out.println("|                   Manager Menu:                       |");
-        System.out.println("|                                                       |");
-        System.out.println("| 1.) Set a new date to be today's date                 |");
-        System.out.println("| 2.) Set new price for stock                           |");
-        System.out.println("| 3.) Buy stock                                         |");
-        System.out.println("| 4.) Sell stock                                        |");
-        System.out.println("| 5.) Show market account balance                       |");
-        System.out.println("| 6.) Show stock account transaction history            |");
-        System.out.println("| 7.) List current price of a stock and actor profile   |");
-        System.out.println("| 8.) List movie information                            |");
-        System.out.println("| 9.) Exit                                              |");
-        System.out.println("--------------------------------------------------------");
-        
-        System.out.print("Enter choice: ");
-        int choice = sc.nextInt();
-        
-        switch(choice){
-        	case 1:
-    			MySQLDB db = new MySQLDB();
-    			db.setCurrentDate(sc);
-        		break;
-        	case 2:
-        		MySQLDB db2 = new MySQLDB();
-        		db2.setCurrentPriceOfStock(sc);
-        		break;
-        }
+		Boolean keepRunning = true;
+		Manager user = new Manager();
+		while(keepRunning){
+			// Login or register
+			System.out.println();
+			System.out.println("Welcome to the manager interface!");
+			System.out.print("Enter 1 for manager login, or 2 to quit: ");
+			int userInput = sc.nextInt();
+			
+				// Login
+			if (userInput == 1){
+				// Successful login
+				if(managerLogin(sc, user) != ""){
+					keepRunning = false;
+					managerMenu(sc, user);
+				}
+				// Unsuccessful login, loop back
+			}
+			if (userInput == 2){
+				keepRunning = false;
+			}
+		}
 	}
 	
-	// Login function for trader/manager
-	public static String login(Scanner sc, Customer customer, String person) throws SQLException {
+	
+	// Manager Menu
+	public static void managerMenu(Scanner sc, Manager user) throws SQLException{
+		Boolean keepRunning = true;
+		while (keepRunning){
+	        System.out.println("|-------------------------------------------------------|");
+	        System.out.println("|                   Manager Menu:                       |");
+	        System.out.println("|                                                       |");
+	        System.out.println("| 1.) Set a new date to be today's date                 |");
+	        System.out.println("| 2.) Set new price for stock                           |");
+	        System.out.println("| 3.) Add interest                                      |");
+	        System.out.println("| 4.) Generate monthly statement                        |");
+	        System.out.println("| 5.) List active customers                             |");
+	        System.out.println("| 6.) Generate government DTER                          |");
+	        System.out.println("| 7.) Customer report                                   |");
+	        System.out.println("| 8.) Delete transactions                               |");
+	        System.out.println("| 9.) Open market for the day                           |");
+	        System.out.println("| 10.)Close market for the day                          |");
+	        System.out.println("| 11.) Exit                                             |");
+	        System.out.println("--------------------------------------------------------");
+	        
+	        System.out.print("Enter choice: ");
+	        int choice = sc.nextInt();
+	        
+	        switch(choice){
+	        	case 1:
+	    			MySQLDB db = new MySQLDB();
+	    			db.setCurrentDate(sc);
+	        		break;
+	        		
+	        	case 2:
+	        		MySQLDB db2 = new MySQLDB();
+	        		db2.setCurrentPriceOfStock(sc);
+	        		break;
+	        		
+	        	case 3:
+	        		break;
+	        		
+	        	case 4:
+	        		user.monthlyStatement(sc);
+	        		break;
+	        		
+	        	case 5:
+	        		break;
+	        		
+	        	case 6:
+	        		break;
+	        		
+	        	case 7:
+	        		break;
+	        		
+	        	case 8:
+	        		break;
+	        		
+	        	case 9:
+	        		break;
+	        		
+	        	case 10:
+	        		break;
+	        		
+	        	case 11:
+	        		keepRunning = false;
+	        		break;
+	        		
+	        	default:
+	        		System.out.println("Invalid choice!");
+	        }		
+		}
+	}
+	
+	
+	// Login function for trader
+	public static String traderLogin(Scanner sc, Customer user) throws SQLException {
 		String retVal = "";
 		
 		// Get info from user
@@ -164,11 +230,14 @@ public class starsrus {
 		System.out.print("Enter password:  ");
 		String loginPassword = sc.nextLine();
         
-        // Update customer
-        customer.username = loginUsername;
-        customer.password = loginPassword;
+        String query = "";
         
-        String query = "SELECT * from customers WHERE username = ? && password = ?";
+        // Trader
+		user.username = loginUsername;
+		user.password = loginPassword;
+    	query = "SELECT * from customers WHERE username = ? && password = ?";	
+
+        
 		Connection con = null;
         PreparedStatement stm = null;
         ResultSet rs = null;
@@ -190,7 +259,7 @@ public class starsrus {
             }
             
             // Compare user name and password
-            if (resultUsername.equals(customer.username) && resultPassword.equals(customer.password)){
+            if (resultUsername.equals(loginUsername) && resultPassword.equals(loginPassword)){
             	System.out.println("Successful login!");
             	retVal = resultUsername;
             }
@@ -204,7 +273,7 @@ public class starsrus {
         return retVal;
 	}
 	
-	// Register function for trader/manager
+	// Register function for trader
 	public static void register(Scanner sc, String person) throws SQLException{
 			
 			// Gather information from user
@@ -322,6 +391,60 @@ public class starsrus {
 			}
 		}
 	
+	// Login function for trader
+		public static String managerLogin(Scanner sc, Manager user) throws SQLException {
+			String retVal = "";
+			
+			// Get info from user
+			System.out.print("Enter username:  ");
+			sc.nextLine();
+			String loginUsername = sc.nextLine();
+			System.out.print("Enter password:  ");
+			String loginPassword = sc.nextLine();
+	        
+	        String query = "";
+	        
+	        // Trader
+			user.username = loginUsername;
+			user.password = loginPassword;
+	    	query = "SELECT * from managers WHERE username = ? && password = ?";	
+
+	        
+			Connection con = null;
+	        PreparedStatement stm = null;
+	        ResultSet rs = null;
+	        
+	        try {
+				MySQLDB db = new MySQLDB();
+				con = db.getDBConnection();
+				stm = con.prepareStatement(query);
+				stm.setString(1,loginUsername);
+				stm.setString(2, loginPassword);
+	            
+				rs = stm.executeQuery();
+	            String resultUsername = "";
+	            String resultPassword = "";
+	            while (rs.next()) {
+	                resultUsername = rs.getString("username");
+	                resultPassword = rs.getString("password");
+
+	            }
+	            
+	            // Compare user name and password
+	            if (resultUsername.equals(loginUsername) && resultPassword.equals(loginPassword)){
+	            	System.out.println("Successful login!");
+	            	retVal = resultUsername;
+	            }
+	            
+	        } catch (SQLException e) { e.printStackTrace();} 
+	        finally {
+	            if (stm != null) try { stm.close(); } catch (SQLException e) {}
+	            if (con != null) try { con.close(); } catch (SQLException e) {}
+	            if (rs != null) try { rs.close(); } catch (SQLException e) {}
+	        }
+	        return retVal;
+		}
+		
 	// Main function
 	public static void main(String[] args) throws SQLException{
 		runProgram();

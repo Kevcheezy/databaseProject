@@ -5,7 +5,7 @@ import java.util.*;
 public class Customer {
 	
 	// User information
-	String username, password, name, taxid, phone_number, email, state;
+	String username, password;
 	
 	// SQL info
 	public static final String HOST = "jdbc:mysql://cs174a.engr.ucsb.edu:3306/kevinchanDB";
@@ -277,12 +277,13 @@ public class Customer {
 
 		
 		// Show user which stocks are in account
-		String query = "SELECT stock_symbol,amount_bought,bought_at FROM stock_accounts WHERE aid = ?";
+		String query = "SELECT stock_symbol,amount_bought,bought_at,sa_id FROM stock_accounts WHERE aid = ?";
 		Connection con = null;
 		PreparedStatement stm = null;
 		PreparedStatement stm1 = null;
 		PreparedStatement stm2 = null;
 		PreparedStatement stm3 = null;
+		PreparedStatement stm4 = null;
 		ResultSet rs = null;
 		
 		try {
@@ -296,18 +297,22 @@ public class Customer {
 			String stock_symbol = "";
 			int amount_bought = 0;
 			float bought_at = 0.0f;
+			int sa_id = -1;
 			
 			ArrayList<String> stock_symbolList = new ArrayList<String>();
 			ArrayList<Integer> amount_boughtList = new ArrayList<Integer>();
 			ArrayList<Float> bought_atList = new ArrayList<Float>();
+			ArrayList<Integer> sa_idList = new ArrayList<Integer>();
 			
 			while (rs.next()){
 				stock_symbol = rs.getString("stock_symbol");
 				amount_bought = rs.getInt("amount_bought");
 				bought_at = rs.getFloat("bought_at");
+				sa_id = rs.getInt("sa_id");
 				stock_symbolList.add(stock_symbol);
 				amount_boughtList.add(amount_bought);
 				bought_atList.add(bought_at);
+				sa_idList.add(sa_id);
 			}
 			
 			for(int i=1; i<=stock_symbolList.size(); i++){
@@ -326,22 +331,15 @@ public class Customer {
 			String chosenStockSymbol = stock_symbolList.get(choice-1);
 			Float chosenBoughtAt = bought_atList.get(choice-1);
 			int chosenAmountBought = amount_boughtList.get(choice-1);
+			int chosensaID = sa_idList.get(choice-1);
 			
 			// Make sure user has enough of the stocks to sell
 			// Calculate stocks remaining = amount_bought - numStocks
-
 			int stocksLeft = chosenAmountBought - numStocks;
 			if (stocksLeft < 0){
 				System.out.println("You do not have enough stocks.");
 			}
 			else{
-				// Update stocks remaining in stock account
-				query = "UPDATE stock_accounts SET amount_bought = ? WHERE stock_symbol = ?";
-				stm2 = con.prepareStatement(query);
-				stm2.setInt(1, stocksLeft);
-				stm2.setString(2,chosenStockSymbol);
-				stm2.executeUpdate();
-				
 				// Get current price of stock
 				query = "SELECT stock_price FROM actor_directors WHERE stock_symbol = ?";
 				stm1 = con.prepareStatement(query);
@@ -354,7 +352,8 @@ public class Customer {
 				
 				// Calculate and update earnings in transactions = (current price - bought_at) * numStocks - commission
 				float earnings = (stock_price - chosenBoughtAt) * numStocks - 20;
-				if(earnings >= 0){
+				float marketBalance = getMarketAccountBalance();
+				if(earnings + marketBalance >= 0){
 					query = "INSERT INTO transactions (aid,type,date,amount,stock_symbol,num_shares,sell_price) VALUES (?,?,?,?,?,?,?)";
 					stm3 = con.prepareStatement(query);
 					stm3.setInt(1, stockAID);
@@ -367,10 +366,33 @@ public class Customer {
 					stm3.executeUpdate();
 					System.out.println("You earned:  " + earnings);
 					System.out.println();
+					
+					// Update or delete stock_account depending on stocks left
+					if (stocksLeft == 0){
+						// Delete records with no stocks left in stock account
+						System.out.println("Sold all of that stock!");
+						query = "DELETE FROM stock_accounts WHERE sa_id = ?";
+						stm4 = con.prepareStatement(query);
+						stm4.setInt(1, chosensaID);
+						stm4.executeUpdate();
+					}
+					else{
+						// Update stocks remaining in stock account
+						System.out.println("Selling stock!");
+						query = "UPDATE stock_accounts SET amount_bought = ? WHERE sa_id = ?";
+						stm2 = con.prepareStatement(query);
+						stm2.setInt(1, stocksLeft);
+						stm2.setInt(2,chosensaID);
+						stm2.executeUpdate();
+					}
+					
 				}
 				else{
 					System.out.println("ERROR! Insufficient funds!");
 				}
+				
+
+				
 			}			
 		} catch (SQLException e){
 			
@@ -381,6 +403,7 @@ public class Customer {
             if (stm1 != null) try { stm1.close(); } catch (SQLException e) {}
             if (stm2 != null) try { stm2.close(); } catch (SQLException e) {}
             if (stm3 != null) try { stm3.close(); } catch (SQLException e) {}
+            if (stm4 != null) try { stm4.close(); } catch (SQLException e) {}
             if (con != null) try { con.close(); } catch (SQLException e) {}
             if (rs != null) try { rs.close(); } catch (SQLException e) {}
 		}		
@@ -456,7 +479,6 @@ public class Customer {
 				if(type.equals("sell")) {
 					System.out.println(num_shares + " shares of " + stock_symbol + " was/were sold at " + sell_price + ", on " + date);
 				}
-				System.out.println();
 			}
 			
 		} catch (SQLException e){

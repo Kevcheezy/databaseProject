@@ -66,7 +66,7 @@ public class starsrus {
 	public static void traderMenu(Scanner sc, Customer user) throws SQLException{
 		Boolean keepRunning = true;
 		while (keepRunning){
-			
+			System.out.println();
 	        System.out.println("|-------------------------------------------------------|");
 	        System.out.println("|                   Trader Menu:                        |");
 	        System.out.println("|                                                       |");
@@ -153,6 +153,7 @@ public class starsrus {
 	public static void managerMenu(Scanner sc, Manager user) throws SQLException{
 		Boolean keepRunning = true;
 		while (keepRunning){
+			System.out.println();
 	        System.out.println("|-------------------------------------------------------|");
 	        System.out.println("|                   Manager Menu:                       |");
 	        System.out.println("|                                                       |");
@@ -165,7 +166,7 @@ public class starsrus {
 	        System.out.println("| 7.) Customer report                                   |");
 	        System.out.println("| 8.) Delete transactions                               |");
 	        System.out.println("| 9.) Open market for the day                           |");
-	        System.out.println("| 10.)Close market for the day                          |");
+	        System.out.println("| 10.) Close market for the day                         |");
 	        System.out.println("| 11.) Exit                                             |");
 	        System.out.println("--------------------------------------------------------");
 	        
@@ -184,6 +185,7 @@ public class starsrus {
 	        		break;
 	        		
 	        	case 3:
+	        		user.addInterest();
 	        		break;
 	        		
 	        	case 4:
@@ -195,12 +197,15 @@ public class starsrus {
 	        		break;
 	        		
 	        	case 6:
+	        		user.generateDTER();
 	        		break;
 	        		
 	        	case 7:
+	        		user.customerReport(sc);
 	        		break;
 	        		
 	        	case 8:
+	        		user.deleteTransactions();
 	        		break;
 	        		
 	        	case 9:

@@ -13,6 +13,7 @@ public class starsrus {
 		
 		while(keepRunning){
 			// Welcome! Pick trader or manager interface
+			System.out.println();
 			System.out.println("Welcome to StarsRUS!");
 			System.out.println();
 			System.out.print("Please enter 1 for trader interface, 2 for manager interface, or 3 to exit: ");
@@ -81,6 +82,7 @@ public class starsrus {
 	        System.out.println("| 9.) Exit                                              |");
 	        System.out.println("--------------------------------------------------------");
    			System.out.println("Welcome " + user.username + "!");
+   			System.out.println();
 	        System.out.print("Select action: ");
 	        int choice = sc.nextInt();
 	        switch (choice){
@@ -101,7 +103,7 @@ public class starsrus {
 	            	user.sellStock(sc);
 	        		break;
 	        	case 5:
-	            	float balance = user.getMarketAccountBalance();
+	            	double balance = user.getMarketAccountBalance();
 	    			System.out.println("Current market account balance: " + balance);
 	        		break;
 	        	case 6:
@@ -209,9 +211,11 @@ public class starsrus {
 	        		break;
 	        		
 	        	case 9:
+	        		user.openMarket();
 	        		break;
 	        		
 	        	case 10:
+	        		user.closeMarket();
 	        		break;
 	        		
 	        	case 11:

@@ -83,6 +83,42 @@ public class MySQLDB {
         return sqlDate;
 	}
 	
+	// Returns 1 if market is open, 0 if market is closed
+	public int isMarketOpen() throws SQLException{
+		int isMarketOpen = -1;
+        Connection connection = null;
+        Statement statement = null;
+        
+        try {
+            Class.forName("com.mysql.jdbc.Driver");
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+
+        try {
+        	String QUERY = "SELECT isMarketOpen FROM general WHERE id = 1";
+            connection = DriverManager.getConnection(HOST, USER, PWD);
+            statement = connection.createStatement();
+            ResultSet resultSet = statement.executeQuery(QUERY);
+            while (resultSet.next()) {
+            	isMarketOpen = resultSet.getInt("isMarketOpen");
+            }
+            
+        } catch (SQLException e) {
+            e.printStackTrace();
+            
+        } finally {
+            if (statement != null) {
+                statement.close();
+            }
+
+            if (connection != null) {
+                connection.close();
+            }
+        }
+		return isMarketOpen;
+	}
+	
 	// Set a new date to be today's date
 	public void setCurrentDate(Scanner sc) throws SQLException{
 		// Get desired date from user

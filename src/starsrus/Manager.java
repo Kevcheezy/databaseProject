@@ -16,18 +16,41 @@ public class Manager {
 	
 		Connection con = null;
 		PreparedStatement stm = null;
+		PreparedStatement stm1 = null;
+		PreparedStatement stm2 = null;
+		PreparedStatement stm3 = null;
+		ResultSet rs = null;
+		
 		try {
 			MySQLDB db = new MySQLDB();
 			con = db.getDBConnection();
-		
-			// Query - Add interest into all market accounts: Divide running_balance by 30 and 
-			// add that amount to balance
-
-			String query = "UPDATE market_accounts SET running_balance = balance";
+			
+			// Query - Update running_balance = running_balance/30 * ( 0.03 / 12); monthly interest rate= annual rate /12
+			String query = "UPDATE market_accounts SET running_balance = (running_balance/30) * (0.03/12) ";
 			stm = con.prepareStatement(query);
 			stm.executeUpdate();
 			
+			// Query - Get current date
+			query = "SELECT time_value FROM general";
+			java.sql.Date date = null;
+			stm1 = con.prepareStatement(query);
+			rs = stm1.executeQuery();
+			while(rs.next()){
+				date = rs.getDate("time_value");
+			}
+			
 			// Query - Add transaction entry into transactions table
+			query = "INSERT INTO transactions (aid,type,date,amount) SELECT aid,'interest',?,running_balance FROM market_accounts";
+			stm2 = con.prepareStatement(query);
+			stm2.setDate(1, date);
+			stm2.executeUpdate();
+			
+			// Query - Add interest into all market accounts: Divide running_balance by 30 and 
+			// add that amount to balance
+			query = "UPDATE market_accounts SET balance = balance + running_balance";
+			stm3 = con.prepareStatement(query);
+			stm3.executeUpdate();
+			
 			
 		} catch (SQLException e){
 			
@@ -35,11 +58,17 @@ public class Manager {
 			
 		} finally {
             if (stm != null) try { stm.close(); } catch (SQLException e) {}
+            if (stm1 != null) try { stm1.close(); } catch (SQLException e) {}
+            if (stm2 != null) try { stm2.close(); } catch (SQLException e) {}
+            if (stm3 != null) try { stm3.close(); } catch (SQLException e) {}
             if (con != null) try { con.close(); } catch (SQLException e) {}
+            if (rs != null) try { rs.close(); } catch (SQLException e) {}
 		}	
 				
 	}
 	// 4.) Generate monthly statement 
+	
+	// 4.) Generate monthly statement for user
 	public void monthlyStatement(Scanner sc) throws SQLException{
 		
 		Connection con = null;
@@ -105,8 +134,9 @@ public class Manager {
 					+ "WHERE aid = ? AND MONTH(date) = ? AND YEAR(date) = ?";
 			
 			String type = "";
-			float amount = 0.0f;
-
+			double amount = 0.0d;
+			
+			
 			// Only market account
 			if(aidList.size() == 1){
 				System.out.println("In market account: ");
@@ -117,7 +147,7 @@ public class Manager {
 				rs = stm3.executeQuery();
 				while(rs.next()){
 					type = rs.getString("type");
-					amount = rs.getFloat("amount");
+					amount = rs.getDouble("amount");
 					System.out.println(" 	- " + type + " of " + amount + "was made.");
 				}
 			}
@@ -133,7 +163,7 @@ public class Manager {
 				rs = stm3.executeQuery();
 				while(rs.next()){
 					type = rs.getString("type");
-					amount = rs.getFloat("amount");
+					amount = rs.getDouble("amount");
 					System.out.println(" 	- " + type + " of " + amount + " was made");
 
 				}
@@ -142,8 +172,8 @@ public class Manager {
 				System.out.println("In stock account: ");
 				String stock_symbol = "";
 				int num_shares = 0;
-				float buy_price = 0.0f;
-				float sell_price = 0.0f;
+				double buy_price = 0.0f;
+				double sell_price = 0.0f;
 				stm4 = con.prepareStatement(query);
 				stm4.setInt(1, aidList.get(1));
 				stm4.setInt(2, month);
@@ -154,8 +184,8 @@ public class Manager {
 					amount = rs.getFloat("amount");
 					stock_symbol = rs.getString("stock_symbol");
 					num_shares = rs.getInt("num_shares");
-					buy_price = rs.getFloat("buy_price");
-					sell_price = rs.getFloat("sell_price");
+					buy_price = rs.getDouble("buy_price");
+					sell_price = rs.getDouble("sell_price");
 					if(type.equals("buy")){
 						System.out.println(" 	- " + type + " of " + num_shares + " of " + stock_symbol + " at " + buy_price + " was made");
 					}
@@ -213,18 +243,13 @@ public class Manager {
 			stm1.setInt(1,month);
 			stm1.setInt(2,year);
 			rs = stm1.executeQuery();
-			ArrayList<String> usernameList = new ArrayList<String>();
-			String name = "";
+			
+			System.out.println("This month's active users: ");
 			while(rs.next()){
 				username = rs.getString("username");
-				usernameList.add(username);
+				System.out.println("	- " + username);
 			}
 			
-			System.out.println();
-			System.out.println("This month's active users");
-			for(int i = 0; i < usernameList.size(); i++){
-				System.out.println("Username: " + usernameList.get(i));
-			}
 			System.out.println();
 			
 		} catch (SQLException e){
@@ -289,6 +314,7 @@ public class Manager {
 		Connection con = null;
 		PreparedStatement stm = null;
 		PreparedStatement stm1 = null;
+		PreparedStatement stm2 = null;
 		ResultSet rs = null;
 
 		try {
@@ -301,28 +327,40 @@ public class Manager {
 			stm = con.prepareStatement(query);
 			stm.setString(1,username);
 			rs = stm.executeQuery();
-			int balance = 0;
+			double balance = 0.0d;
 			while(rs.next()){
-				balance = rs.getInt("balance");
+				balance = rs.getDouble("balance");
 			}
+			System.out.println();
 			System.out.println("For username: " + username);
+			System.out.println();
 			System.out.println("	- Market account balance: " + balance);
 			System.out.println();
-			System.out.println("	- Stock account balance: ");
 			
-			// Query - Returns stock account balance according to user name
+			// Query - Returns stock_account balance
+			query = "SELECT sa.balance,sa.aid FROM stock_accounts_balance sa INNER JOIN (select aid,username FROM accounts WHERE username = ?) a ON sa.aid = a.aid";
+			stm2 = con.prepareStatement(query);
+			stm2.setString(1, username);
+			rs = stm2.executeQuery();
+			double stock_balance = 0.0d;
+			while(rs.next()){
+				stock_balance = rs.getDouble("balance");
+			}
+			System.out.println("	- Stock account balance: " + stock_balance);
+			
+			// Query - Returns stocks in stock account according to user name
 			query = "SELECT stock_symbol,amount_bought,bought_at FROM stock_accounts INNER JOIN (select aid,account_type FROM accounts WHERE username = ?) a ON stock_accounts.aid = a.aid";
 			stm1 = con.prepareStatement(query);
 			stm1.setString(1, username);
 			rs = stm1.executeQuery();
 			String stock_symbol = "";
 			int amount_bought = 0;
-			float bought_at = 0.0f;
+			double bought_at = 0.0d;
 			
 			while(rs.next()){
 				stock_symbol = rs.getString("stock_symbol");
 				amount_bought = rs.getInt("amount_bought");
-				bought_at = rs.getFloat("bought_at");
+				bought_at = rs.getDouble("bought_at");
 				System.out.println("		- " + amount_bought + " stocks of " + stock_symbol + " bought at " + bought_at);
 			}
 		
@@ -333,6 +371,7 @@ public class Manager {
 		} finally {
             if (stm != null) try { stm.close(); } catch (SQLException e) {}
             if (stm1 != null) try { stm1.close(); } catch (SQLException e) {}
+            if (stm2 != null) try { stm2.close(); } catch (SQLException e) {}
             if (con != null) try { con.close(); } catch (SQLException e) {}
             if (rs != null) try { rs.close(); } catch (SQLException e) {}
 		}
@@ -369,24 +408,20 @@ public class Manager {
 	
 	// 9.) Open market for the day
 	public void openMarket() throws SQLException{
-		// Update current date to next day
-		
-	}
-	// 10.)Close market for the day 
-	public void closeMarket() throws SQLException{
 		
 		Connection con = null;
 		PreparedStatement stm = null;
+		
 		try {
 			MySQLDB db = new MySQLDB();
-			con = db.getDBConnection();
-		
-			// Query - In market_accounts, update running_balance = balance
-			String query = "UPDATE market_accounts SET running_balance = balance";
+			con = db.getDBConnection();		
+
+			// Query - Update in general: isMarketOpen to 1 (open)
+			String query = "UPDATE general SET isMarketOpen = 1 WHERE id = 1";
 			stm = con.prepareStatement(query);
 			stm.executeUpdate();
+		
 			
-			// Query - Store daily closing price of stock?
 		} catch (SQLException e){
 			
 			System.out.println(e.getMessage());
@@ -395,6 +430,57 @@ public class Manager {
             if (stm != null) try { stm.close(); } catch (SQLException e) {}
             if (con != null) try { con.close(); } catch (SQLException e) {}
 		}	
+		System.out.println("Market is now open!");
+		System.out.println();
+	}
+	
+	// 10.)Close market for the day 
+	public void closeMarket() throws SQLException{
 		
+		Connection con = null;
+		PreparedStatement stm = null;
+		PreparedStatement stm1 = null;
+		PreparedStatement stm2 = null;
+		PreparedStatement stm3 = null;
+		ResultSet rs = null;
+		
+		try {
+			MySQLDB db = new MySQLDB();
+			con = db.getDBConnection();
+		
+			// Query - In market_accounts, update running_balance = running_balance + balance
+			String query = "UPDATE market_accounts SET running_balance = balance + running_balance";
+			stm = con.prepareStatement(query);
+			stm.executeUpdate();
+			
+			// Query - Update daily closing price of stock
+			query = "UPDATE actor_directors SET daily_closing_price = stock_price";
+			stm3 = con.prepareStatement(query);
+			stm3.executeUpdate();
+		
+			// Query - Update current day to next day
+			query = "UPDATE general SET time_value = DATE_ADD(time_value, INTERVAL 1 DAY) WHERE id = 0";
+			stm1 = con.prepareStatement(query);
+			stm1.executeUpdate();
+
+			// Query - Update in general: isMarketOpen to 0 (closed)
+			query = "UPDATE general SET isMarketOpen = 0 WHERE id = 1";
+			stm2 = con.prepareStatement(query);
+			stm2.executeUpdate();
+			
+		} catch (SQLException e){
+			
+			System.out.println(e.getMessage());
+			
+		} finally {
+            if (stm != null) try { stm.close(); } catch (SQLException e) {}
+            if (stm1 != null) try { stm1.close(); } catch (SQLException e) {}
+            if (stm2 != null) try { stm2.close(); } catch (SQLException e) {}
+            if (stm3 != null) try { stm3.close(); } catch (SQLException e) {}
+            if (con != null) try { con.close(); } catch (SQLException e) {}
+            if (rs != null) try { rs.close(); } catch (SQLException e) {}
+		}	
+		System.out.println("Market is now closed for the day!");
+		System.out.println();
 	}
 }

@@ -31,17 +31,17 @@ public class Customer {
 		try {
 			MySQLDB db = new MySQLDB();
 			con = db.getDBConnection();
-			float userBalance =  getMarketAccountBalance();
+			double userBalance =  getMarketAccountBalance();
 			
 			// Increase balance by amount
 			System.out.println("Current market account balance: " + userBalance);
-			userBalance = userBalance + (float)amt;
+			userBalance = userBalance + (double)amt;
 			
 			// Update database using aid and new balance amount
 			query = "UPDATE market_accounts SET balance = ? WHERE taxID = ?";
 			int taxID = taxIDOfUsername(this.username);
 			stm2 = con.prepareStatement(query);
-			stm2.setFloat(1,userBalance);
+			stm2.setDouble(1,userBalance);
 			stm2.setInt(2, taxID);
 			stm2.executeUpdate();
 			System.out.println("New market account balance is: " + userBalance);
@@ -55,7 +55,7 @@ public class Customer {
 			stm3.setInt(1, aid);
 			stm3.setString(2, "deposit");
 			stm3.setDate(3, sqlDate);
-			stm3.setFloat(4, (float)amt);
+			stm3.setDouble(4, (double)amt);
 			stm3.executeUpdate();
 			
 		} catch (SQLException e){
@@ -72,9 +72,7 @@ public class Customer {
 	
 	// 2) Withdraw from market account
 	public void withdraw(Integer amt) throws SQLException{
-		System.out.println("Withdrawing " + amt.toString() + "...");
-		// Send request query to database getting current market account balance of user
-		String query = "SELECT balance,aid FROM market_accounts WHERE username = ?";
+		
 		Connection con = null;
 		PreparedStatement stm = null;
 		PreparedStatement stm2 = null;
@@ -82,7 +80,9 @@ public class Customer {
 		try {
 			MySQLDB db = new MySQLDB();
 			con = db.getDBConnection();
-			float userBalance = getMarketAccountBalance();
+			
+			// Send request query to database getting current market account balance of user
+			double userBalance = getMarketAccountBalance();
 			
 			// Increase balance by amount
 			System.out.println("Current market account balance: " + userBalance);
@@ -93,10 +93,10 @@ public class Customer {
 			}
 			
 			// Update database using aid and new balance amount
-			query = "UPDATE market_accounts SET balance = ? WHERE aid = ?";
+			String query = "UPDATE market_accounts SET balance = ? WHERE aid = ?";
 			int aid = getAIDofAccount("market");
 			stm2 = con.prepareStatement(query);
-			stm2.setFloat(1,userBalance);
+			stm2.setDouble(1,userBalance);
 			stm2.setInt(2, aid);
 			stm2.executeUpdate();
 			System.out.println("New market account balance: " + userBalance);
@@ -108,7 +108,7 @@ public class Customer {
 			stm3.setInt(1, aid);
 			stm3.setString(2, "withdrawal");
 			stm3.setDate(3, sqlDate);
-			stm3.setFloat(4, (float)amt);
+			stm3.setDouble(4, (double)amt);
 			stm3.executeUpdate();
 			
 		} catch (SQLException e){
@@ -137,18 +137,21 @@ public class Customer {
 		PreparedStatement stm6 = null;
 		PreparedStatement stm7 = null;
 		PreparedStatement stm8 = null;
+		PreparedStatement stm9 = null;
 		ResultSet rs = null;
 		String query = "SELECT stock_symbol,stock_price FROM actor_directors";
+		
 		try {
 			MySQLDB db = new MySQLDB();
 			con = db.getDBConnection();
 			stm = con.prepareStatement(query);
 			rs = stm.executeQuery();
 			ArrayList<String> allStocks = new ArrayList<String>();
-			ArrayList<Float> allStockPrices = new ArrayList<Float>();
+			ArrayList<Double> allStockPrices = new ArrayList<Double>();
 			
 			String stock_symbol = "";
-			float stock_price = 0.0f;
+			double stock_price = 0.0d;
+			
 			while (rs.next()){
 				stock_symbol = rs.getString("stock_symbol");
 				allStocks.add(stock_symbol);
@@ -161,6 +164,11 @@ public class Customer {
 				System.out.printf("%.3f", allStockPrices.get(i-1));
 				System.out.println();
 			}
+			// Display current balance
+			double currentBalance = this.getMarketAccountBalance();
+			double stock_account_balance = this.getStockAccountBalance();
+			System.out.println("Current market account balance: " + currentBalance);
+			System.out.println("Current stock account balance: " + stock_account_balance);
 			
 			// User selects stock and how many
 			System.out.print("Enter index of stock to purchase: ");
@@ -168,12 +176,11 @@ public class Customer {
 			System.out.print("Number of stocks to purchase: ");
 			int numStock = sc.nextInt();
 			String chosenStockSymbol = allStocks.get(choice-1);
-			float chosenStockPrice = allStockPrices.get(choice-1);
+			double chosenStockPrice = allStockPrices.get(choice-1);
 			
 			// Deduct money from market account (make sure balance >= 0)
-			float currentBalance = this.getMarketAccountBalance();
-			float totalPrice = (float)numStock * allStockPrices.get(choice-1) + 20.0f;
-			float newBalance = (float)currentBalance - totalPrice;
+			double totalPrice = (double)numStock * allStockPrices.get(choice-1) + 20.0d;
+			double newBalance = (double)currentBalance - totalPrice;
 			
 			// If user does not have enough money to make this purchase, do not allow
 			if (newBalance < 0){
@@ -184,9 +191,10 @@ public class Customer {
 				int aid = getAIDofAccount("market");
 				query = "UPDATE market_accounts SET balance = ? WHERE aid = ?";
 				stm2 = con.prepareStatement(query);
-				stm2.setFloat(1,newBalance);
+				stm2.setDouble(1,newBalance);
 				stm2.setInt(2, aid);
 				stm2.executeUpdate();
+				System.out.println();
 				System.out.println("New market account balance: " + newBalance);	
 				
 				
@@ -208,9 +216,18 @@ public class Customer {
 					stm5.setInt(1, useraid);
 					stm5.setString(2, chosenStockSymbol);
 					stm5.setInt(3, numStock);
-					stm5.setFloat(4, chosenStockPrice);
+					stm5.setDouble(4, chosenStockPrice);
 					stm5.setDate(5, db.getCurrentTime());
 					stm5.executeUpdate();
+					
+					// Query - Update stock_account_balance with new balance
+					query = "UPDATE stock_accounts_balance SET balance = ? WHERE aid = ?";
+					stock_account_balance = stock_account_balance + (numStock * chosenStockPrice);
+					stm9 = con.prepareStatement(query);
+					stm9.setDouble(1,stock_account_balance);
+					stm9.setInt(2, useraid);
+					System.out.println("New stock account balance: " + stock_account_balance);
+					
 				}
 				
 				// If user does NOT have stock account, create one and add purchased stock info into account
@@ -233,9 +250,17 @@ public class Customer {
 					stm7.setInt(1, newStockaid);
 					stm7.setString(2, chosenStockSymbol);
 					stm7.setInt(3, numStock);
-					stm7.setFloat(4, chosenStockPrice);
+					stm7.setDouble(4, chosenStockPrice);
 					stm7.setDate(5, db.getCurrentTime());
 					stm7.executeUpdate();
+					
+					// Query - Insert stock_account_balance with new balance
+					query = "INSERT INTO stock_accounts_balance (balance,aid) VALUES (?,?)";
+					stock_account_balance = getStockAccountBalance() + (numStock * chosenStockPrice);
+					stm9 = con.prepareStatement(query);
+					stm9.setDouble(1,stock_account_balance);
+					stm9.setInt(2, newStockaid);
+					System.out.println("New stock account balance: " + stock_account_balance);
 				}
 				
 				// Insert new buy transaction
@@ -246,13 +271,13 @@ public class Customer {
 				stm3.setInt(1, aid);
 				stm3.setString(2, "buy");
 				stm3.setDate(3, db.getCurrentTime());
-				stm3.setFloat(4,totalPrice);
+				stm3.setDouble(4,totalPrice);
 				stm3.setString(5, chosenStockSymbol);
 				stm3.setInt(6, numStock);
-				stm3.setFloat(7, chosenStockPrice);
+				stm3.setDouble(7, chosenStockPrice);
 				stm3.executeUpdate();
-				
-				
+			
+		
 			}
 			
 		} catch (SQLException e){
@@ -266,7 +291,8 @@ public class Customer {
             if (stm5 != null) try { stm5.close(); } catch (SQLException e) {}
             if (stm6 != null) try { stm6.close(); } catch (SQLException e) {}
             if (stm7 != null) try { stm7.close(); } catch (SQLException e) {}
-            if (stm8 != null) try { stm8.close(); } catch (SQLException e) {}            
+            if (stm8 != null) try { stm8.close(); } catch (SQLException e) {}    
+            if (stm9 != null) try { stm9.close(); } catch (SQLException e) {}    
             if (con != null) try { con.close(); } catch (SQLException e) {}
             if (rs != null) try { rs.close(); } catch (SQLException e) {}
 		}
@@ -275,7 +301,7 @@ public class Customer {
 	// 4) Sell stock
 	public void sellStock(Scanner sc) throws SQLException{
 
-		
+		System.out.println();
 		// Show user which stocks are in account
 		String query = "SELECT stock_symbol,amount_bought,bought_at,sa_id FROM stock_accounts WHERE aid = ?";
 		Connection con = null;
@@ -284,6 +310,7 @@ public class Customer {
 		PreparedStatement stm2 = null;
 		PreparedStatement stm3 = null;
 		PreparedStatement stm4 = null;
+		PreparedStatement stm5 = null;
 		ResultSet rs = null;
 		
 		try {
@@ -296,18 +323,18 @@ public class Customer {
 			
 			String stock_symbol = "";
 			int amount_bought = 0;
-			float bought_at = 0.0f;
+			double bought_at = 0.0d;
 			int sa_id = -1;
 			
 			ArrayList<String> stock_symbolList = new ArrayList<String>();
 			ArrayList<Integer> amount_boughtList = new ArrayList<Integer>();
-			ArrayList<Float> bought_atList = new ArrayList<Float>();
+			ArrayList<Double> bought_atList = new ArrayList<Double>();
 			ArrayList<Integer> sa_idList = new ArrayList<Integer>();
 			
 			while (rs.next()){
 				stock_symbol = rs.getString("stock_symbol");
 				amount_bought = rs.getInt("amount_bought");
-				bought_at = rs.getFloat("bought_at");
+				bought_at = rs.getDouble("bought_at");
 				sa_id = rs.getInt("sa_id");
 				stock_symbolList.add(stock_symbol);
 				amount_boughtList.add(amount_bought);
@@ -326,10 +353,10 @@ public class Customer {
 			// User picks how many of stocks to sell
 			System.out.print("Quantity: ");
 			int numStocks = sc.nextInt();
-			
+			System.out.println();
 			
 			String chosenStockSymbol = stock_symbolList.get(choice-1);
-			Float chosenBoughtAt = bought_atList.get(choice-1);
+			Double chosenBoughtAt = bought_atList.get(choice-1);
 			int chosenAmountBought = amount_boughtList.get(choice-1);
 			int chosensaID = sa_idList.get(choice-1);
 			
@@ -351,49 +378,67 @@ public class Customer {
 				}
 				
 				// Calculate and update earnings in transactions = (current price - bought_at) * numStocks - commission
-				float earnings = (stock_price - chosenBoughtAt) * numStocks - 20;
-				float marketBalance = getMarketAccountBalance();
-				if(earnings + marketBalance >= 0){
-					query = "INSERT INTO transactions (aid,type,date,amount,stock_symbol,num_shares,sell_price) VALUES (?,?,?,?,?,?,?)";
-					stm3 = con.prepareStatement(query);
-					stm3.setInt(1, stockAID);
-					stm3.setString(2, "sell");
-					stm3.setDate(3, db.getCurrentTime());
-					stm3.setFloat(4, earnings);
-					stm3.setString(5, chosenStockSymbol);
-					stm3.setInt(6, numStocks);
-					stm3.setFloat(7, stock_price);
-					stm3.executeUpdate();
-					System.out.println("You earned:  " + earnings);
-					System.out.println();
+				double earnings = (stock_price - chosenBoughtAt) * numStocks - 20;
+				double marketBalance = getMarketAccountBalance();
+				
+				
+				// Check if stock account balance is < 0, if so, do not proceed
+				double stock_account_balance = getStockAccountBalance() - (numStocks * stock_price);
+				if (stock_account_balance >= 0){
 					
-					// Update or delete stock_account depending on stocks left
-					if (stocksLeft == 0){
-						// Delete records with no stocks left in stock account
-						System.out.println("Sold all of that stock!");
-						query = "DELETE FROM stock_accounts WHERE sa_id = ?";
-						stm4 = con.prepareStatement(query);
-						stm4.setInt(1, chosensaID);
-						stm4.executeUpdate();
+					// If the transaction will make marketBalance < 0, don't let
+					if(marketBalance >= 20){
+						query = "INSERT INTO transactions (aid,type,date,amount,stock_symbol,num_shares,sell_price) VALUES (?,?,?,?,?,?,?)";
+						stm3 = con.prepareStatement(query);
+						stm3.setInt(1, stockAID);
+						stm3.setString(2, "sell");
+						stm3.setDate(3, db.getCurrentTime());
+						stm3.setDouble(4, earnings);
+						stm3.setString(5, chosenStockSymbol);
+						stm3.setInt(6, numStocks);
+						stm3.setDouble(7, stock_price);
+						stm3.executeUpdate();
+						System.out.println("You earned:  " + earnings);
+						System.out.println();
+						
+						// Query - Update stock_account_balance with new balance
+						query = "UPDATE stock_accounts_balance SET balance = ? WHERE aid = ?";
+						stm5 = con.prepareStatement(query);
+						stm5.setDouble(1,stock_account_balance);
+						stm5.setInt(2, stockAID);
+						System.out.println("New stock account balance: " + stock_account_balance);
+						
+						// Update or delete stock_account depending on stocks left
+						if (stocksLeft == 0){
+							// Delete records with no stocks left in stock account
+							System.out.println("Sold all of that stock!");
+							query = "DELETE FROM stock_accounts WHERE sa_id = ?";
+							stm4 = con.prepareStatement(query);
+							stm4.setInt(1, chosensaID);
+							stm4.executeUpdate();
+						}
+						
+						else{
+							// Update stocks remaining in stock account
+							query = "UPDATE stock_accounts SET amount_bought = ? WHERE sa_id = ?";
+							stm2 = con.prepareStatement(query);
+							stm2.setInt(1, stocksLeft);
+							stm2.setInt(2,chosensaID);
+							stm2.executeUpdate();
+						}
+						System.out.println("You earned: " + earnings + "!");
 					}
 					else{
-						// Update stocks remaining in stock account
-						System.out.println("Selling stock!");
-						query = "UPDATE stock_accounts SET amount_bought = ? WHERE sa_id = ?";
-						stm2 = con.prepareStatement(query);
-						stm2.setInt(1, stocksLeft);
-						stm2.setInt(2,chosensaID);
-						stm2.executeUpdate();
+						System.out.println("ERROR! Insufficient funds in market account!");
 					}
-					
 				}
+				
+				// Error: stock account balance will go below 0
 				else{
-					System.out.println("ERROR! Insufficient funds!");
+					System.out.println("ERROR! Stock account balance will go below 0!");
 				}
-				
-
-				
-			}			
+			}
+			
 		} catch (SQLException e){
 			
 			System.out.println(e.getMessage());
@@ -404,13 +449,16 @@ public class Customer {
             if (stm2 != null) try { stm2.close(); } catch (SQLException e) {}
             if (stm3 != null) try { stm3.close(); } catch (SQLException e) {}
             if (stm4 != null) try { stm4.close(); } catch (SQLException e) {}
+            if (stm5 != null) try { stm5.close(); } catch (SQLException e) {}
             if (con != null) try { con.close(); } catch (SQLException e) {}
             if (rs != null) try { rs.close(); } catch (SQLException e) {}
 		}		
 	}
 	
 	// 5) Show market account balance
-	public float getMarketAccountBalance() throws SQLException{
+	public double getMarketAccountBalance() throws SQLException{
+		
+		System.out.println();
 		// Send request query to database getting current market account balance of user
 		int taxID = taxIDOfUsername(this.username);
 		String query = "SELECT balance FROM market_accounts WHERE taxID = ?";
@@ -418,7 +466,7 @@ public class Customer {
 		PreparedStatement stm = null;
 		ResultSet rs = null;
 		
-		float userBalance = 0;
+		double userBalance = 0;
 		try {
 			MySQLDB db = new MySQLDB();
 			con = db.getDBConnection();
@@ -445,6 +493,7 @@ public class Customer {
 		String query = "SELECT type,date,amount,stock_symbol,num_shares,buy_price,sell_price FROM transactions WHERE aid = ?";
 		Connection con = null;
 		PreparedStatement stm = null;
+		PreparedStatement stm1 = null;
 		ResultSet rs = null;
 		
 		try {
@@ -455,6 +504,7 @@ public class Customer {
 			stm.setInt(1,stockAID);
 			rs = stm.executeQuery();
 			
+			// Query - Show recent stock transaction history
 			String type = "";
 			java.sql.Date date = null;
 			int amount = 0;
@@ -481,12 +531,29 @@ public class Customer {
 				}
 			}
 			
+			// Query - Show stock account balance (in terms of stock)
+			query = "SELECT balance FROM stock_accounts_balance WHERE aid = ?";
+			stm1 = con.prepareStatement(query);
+			stm1.setInt(1, stockAID);
+			rs = stm1.executeQuery();
+			
+			float balance = 0.0f;
+			
+			while(rs.next()){
+				balance = rs.getFloat("balance");
+			}
+
+			System.out.println();
+			System.out.println("Current stock account balance (in terms of stock): " + balance);
+			System.out.println();
+			
 		} catch (SQLException e){
 			
 			System.out.println(e.getMessage());
 			
 		} finally {
             if (stm != null) try { stm.close(); } catch (SQLException e) {}
+            if (stm1 != null) try { stm1.close(); } catch (SQLException e) {}
             if (con != null) try { con.close(); } catch (SQLException e) {}
             if (rs != null) try { rs.close(); } catch (SQLException e) {}
 		}
@@ -524,6 +591,7 @@ public class Customer {
 			System.out.print("Enter index of stock to display details of: ");
 			int choice = sc.nextInt();			
 			String chosenStock = allStocks.get(choice-1);
+			
 			// Display actor/director's details from selected stock
 			// Get basic info
 			query = "SELECT * FROM actor_directors WHERE stock_symbol = ?";
@@ -583,6 +651,7 @@ public class Customer {
         System.out.print("Enter option: ");
         
         int choice = sc.nextInt();
+        System.out.println();
         switch (choice){
         	case 1:
         		showMovies(sc);
@@ -780,6 +849,39 @@ public class Customer {
             if (rs != null) try { rs.close(); } catch (SQLException e) {}
 		}
 		return taxID;
+	}
+	
+	public float getStockAccountBalance() throws SQLException{
+		
+		System.out.println();
+		// Send request query to database getting current stock account balance of user
+		int stockAID = getAIDofAccount("stock");
+		String query = "SELECT balance FROM stock_accounts_balance WHERE aid = ?";
+		Connection con = null;
+		PreparedStatement stm = null;
+		ResultSet rs = null;
+		
+		float userBalance = 0;
+		try {
+			MySQLDB db = new MySQLDB();
+			con = db.getDBConnection();
+			stm = con.prepareStatement(query);
+			stm.setInt(1,stockAID);
+			rs = stm.executeQuery();
+			while (rs.next()){
+				userBalance = rs.getFloat("balance");
+			}
+		} catch (SQLException e){
+			
+			System.out.println(e.getMessage());
+			
+		} finally {
+            if (stm != null) try { stm.close(); } catch (SQLException e) {}
+            if (con != null) try { con.close(); } catch (SQLException e) {}
+            if (rs != null) try { rs.close(); } catch (SQLException e) {}
+		}
+		return userBalance;
+		
 	}
 	
 	public int getAIDofAccount(String accountType) throws SQLException{

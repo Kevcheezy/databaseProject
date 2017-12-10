@@ -396,7 +396,7 @@ public class Customer {
 					double marketBalance = getMarketAccountBalance();
 					
 					// Check if stock account balance is < 0, if so, do not proceed
-					stock_account_balance = stock_account_balance - (numStocks * stock_price);
+					stock_account_balance = stock_account_balance + (numStocks * stock_price) - 20;
 					if (stock_account_balance >= 0){
 						
 						// If the transaction will make marketBalance < 0, don't let

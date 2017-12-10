@@ -326,7 +326,7 @@ public class Manager {
 			while(rs.next()){
 				name = rs.getString("name");
 				state = rs.getString("state");
-				System.out.println("Name: " + name + " from " + state );
+				System.out.println("Name: " + name + " , State: " + state );
 			}
 
 		
@@ -430,8 +430,9 @@ public class Manager {
 			String query = "DELETE FROM transactions";
 			stm = con.prepareStatement(query);
 			stm.executeUpdate();
-
-			query = "DELETE FROM daily_market_balance";
+			
+			// Query - Update running balances to 0
+			query = "UPDATE market_accounts SET running_balance = 0";
 			stm1 = con.prepareStatement(query);
 			stm1.executeUpdate();
 		

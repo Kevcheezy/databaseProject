@@ -750,7 +750,7 @@ public class Customer {
 	
 	// 8b) Display top movies within time interval
 	public void moviesBtwnTime(Scanner sc, int beginYear, int endYear) throws SQLException {
-		// Send request query to database getting current market account balance of user
+		// Query - Get movies between time frame of rating 5
 		String query = "SELECT title FROM Movies WHERE rating = 5 && production_year >= ? && production_year <= ?";
 		Connection con = null;
 		PreparedStatement stm = null;

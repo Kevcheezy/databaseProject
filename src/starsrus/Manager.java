@@ -52,8 +52,8 @@ public class Manager {
 			stm3 = con.prepareStatement(query);
 			stm3.executeUpdate();
 			
-			// Query - Reset running_balance to 0 because it is the end of the month
-			query = "UPDATE market_accounts SET running_balance = 0";
+			// Query - Reset running_balance to balance because it is the end of the month
+			query = "UPDATE market_accounts SET running_balance = balance";
 			stm4 = con.prepareStatement(query);
 			stm4.executeUpdate();
 			
@@ -541,10 +541,9 @@ public class Manager {
 			con = db.getDBConnection();
 		
 			// Query - Get 
-			String query = "select COUNT(aid) as commissions FROM transactions WHERE (aid = ? AND type = 'deposit') OR (aid = ?)";
+			String query = "select COUNT(aid) as commissions FROM transactions WHERE (aid = ?)";
 			stm = con.prepareStatement(query);
-			stm.setInt(1, marketAID);
-			stm.setInt(2, stockAID);
+			stm.setInt(1, stockAID);
 			rs = stm.executeQuery();
 			if(rs.next()){
 				commissions = rs.getDouble("commissions");

@@ -109,6 +109,7 @@ public class Manager {
 			sc.nextLine();
 			String username = sc.nextLine();
 			
+			System.out.println();
 			System.out.println("---------- Monthly Statement for " + month + "/" + year + "----------");
 			
 			// Get email and name of user name
@@ -166,8 +167,12 @@ public class Manager {
 				System.out.println("   - Final balance: " + balances.get(1));
 				
 				// Query - Get total earnings
+				double earnings = getEarnings(aidList.get(0), -1);
+				System.out.println("Total earnings: " + earnings);
+
 				// Query - Get total amount of commissions paid
-				
+				double commissions = getCommissions(aidList.get(0), -1);
+				System.out.println("Total amount of commissions paid: " + commissions);
 				
 			}
 			// Market AND stock accounts
@@ -219,9 +224,15 @@ public class Manager {
 					}
 				}
 				System.out.println("   - Final balance: " + balances.get(1));
-
-				// Query - Get total earnings
+				System.out.println();
 				
+				// Query - Get total earnings
+				double earnings = getEarnings(aidList.get(0),aidList.get(1));
+				System.out.println("Total earnings/loss: " + earnings);
+				
+				// Query - Get total amount of commissions paid
+				double commissions = getCommissions(aidList.get(0), aidList.get(1));
+				System.out.println("Total amount of commissions paid: " + commissions);
 			}
 			
 		} catch (SQLException e){
@@ -515,6 +526,75 @@ public class Manager {
 		}	
 		System.out.println("Market is now closed for the day!");
 		System.out.println();
+	}
+	
+	// Returns total commissions paid for a given account aid
+	public double getCommissions(int marketAID, int stockAID) throws SQLException{
+		double commissions = 0;
+		Connection con = null;
+		PreparedStatement stm = null;
+		ResultSet rs = null;
+		
+		try {
+			MySQLDB db = new MySQLDB();
+			con = db.getDBConnection();
+		
+			// Query - Get 
+			String query = "select COUNT(aid) as commissions FROM transactions WHERE (aid = ? AND type = 'deposit') OR (aid = ?)";
+			stm = con.prepareStatement(query);
+			stm.setInt(1, marketAID);
+			stm.setInt(2, stockAID);
+			rs = stm.executeQuery();
+			if(rs.next()){
+				commissions = rs.getDouble("commissions");
+			}
+			
+		} catch (SQLException e){
+			
+			System.out.println(e.getMessage());
+			
+		} finally {
+            if (stm != null) try { stm.close(); } catch (SQLException e) {}
+            if (con != null) try { con.close(); } catch (SQLException e) {}
+            if (rs != null) try { rs.close(); } catch (SQLException e) {}
+		}	
+		
+		return commissions;
+	}
+	
+	// Returns a month's earnings for a given account aid
+	public double getEarnings(int marketAID, int stockAID) throws SQLException{
+		
+		double earnings = 0;
+		Connection con = null;
+		PreparedStatement stm = null;
+		ResultSet rs = null;
+		
+		try {
+			MySQLDB db = new MySQLDB();
+			con = db.getDBConnection();
+		
+			// Query - Get 
+			String query = "SELECT SUM(amount) as earnings FROM transactions WHERE (aid = ? AND type = 'interest') OR ( aid = ? AND type ='sell')";
+			stm = con.prepareStatement(query);
+			stm.setInt(1, marketAID);
+			stm.setInt(2, stockAID);
+			rs = stm.executeQuery();
+			if(rs.next()){
+				earnings = rs.getDouble("earnings");
+			}
+			
+		} catch (SQLException e){
+			
+			System.out.println(e.getMessage());
+			
+		} finally {
+            if (stm != null) try { stm.close(); } catch (SQLException e) {}
+            if (con != null) try { con.close(); } catch (SQLException e) {}
+            if (rs != null) try { rs.close(); } catch (SQLException e) {}
+		}	
+		
+		return earnings;
 	}
 	
 	// Returns initial and final balances for an account aid

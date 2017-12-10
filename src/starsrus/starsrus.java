@@ -104,7 +104,7 @@ public class starsrus {
 	        		break;
 	        	case 5:
 	            	double balance = user.getMarketAccountBalance();
-	    			System.out.println("Current market account balance: " + balance);
+	    			System.out.println("Current market account balance: " + String.format("%.2f", balance));
 	        		break;
 	        	case 6:
 	        		user.showStockTransactionHistory();

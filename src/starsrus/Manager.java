@@ -19,6 +19,7 @@ public class Manager {
 		PreparedStatement stm1 = null;
 		PreparedStatement stm2 = null;
 		PreparedStatement stm3 = null;
+		PreparedStatement stm4 = null;
 		ResultSet rs = null;
 		
 		try {
@@ -51,6 +52,10 @@ public class Manager {
 			stm3 = con.prepareStatement(query);
 			stm3.executeUpdate();
 			
+			// Query - Reset running_balance to 0 because it is the end of the month
+			query = "UPDATE market_accounts SET running_balance = 0";
+			stm4 = con.prepareStatement(query);
+			stm4.executeUpdate();
 			
 		} catch (SQLException e){
 			
@@ -61,6 +66,7 @@ public class Manager {
             if (stm1 != null) try { stm1.close(); } catch (SQLException e) {}
             if (stm2 != null) try { stm2.close(); } catch (SQLException e) {}
             if (stm3 != null) try { stm3.close(); } catch (SQLException e) {}
+            if (stm4 != null) try { stm4.close(); } catch (SQLException e) {}
             if (con != null) try { con.close(); } catch (SQLException e) {}
             if (rs != null) try { rs.close(); } catch (SQLException e) {}
 		}	
@@ -77,6 +83,7 @@ public class Manager {
 		PreparedStatement stm2 = null;
 		PreparedStatement stm3 = null;
 		PreparedStatement stm4 = null;
+		PreparedStatement stm5 = null;
 		ResultSet rs = null;
 
 		try {
@@ -117,6 +124,7 @@ public class Manager {
 				System.out.println("Name: " + name);
 				System.out.println("Email: " + email);
 			}
+			System.out.println();
 			
 			// Get all account id's that this customer owns
 			query = "SELECT aid FROM accounts WHERE username = ?";
@@ -137,6 +145,7 @@ public class Manager {
 			double amount = 0.0d;
 			
 			
+			ArrayList<Double> balances = new ArrayList<Double>();
 			// Only market account
 			if(aidList.size() == 1){
 				System.out.println("In market account: ");
@@ -145,17 +154,29 @@ public class Manager {
 				stm3.setInt(2, month);
 				stm3.setInt(3, year);
 				rs = stm3.executeQuery();
+				
+				// Query - Get initial and final balance for market account
+				balances = getBalances(aidList.get(0));
+				System.out.println("   - Initial balance: " + balances.get(0));
 				while(rs.next()){
 					type = rs.getString("type");
 					amount = rs.getDouble("amount");
 					System.out.println(" 	- " + type + " of " + amount + "was made.");
 				}
+				System.out.println("   - Final balance: " + balances.get(1));
+				
+				// Query - Get total earnings
+				// Query - Get total amount of commissions paid
+				
+				
 			}
 			// Market AND stock accounts
 			else{
 
 				// Market account first
+				balances = getBalances(aidList.get(0));
 				System.out.println("In market account: ");
+				System.out.println("   - Initial balance: " + balances.get(0));
 				stm3 = con.prepareStatement(query);
 				stm3.setInt(1, aidList.get(0));
 				stm3.setInt(2, month);
@@ -167,9 +188,13 @@ public class Manager {
 					System.out.println(" 	- " + type + " of " + amount + " was made");
 
 				}
+				System.out.println("   - Final balance: " + balances.get(1));
+				System.out.println();
 				
 				// Stock account
+				balances = getBalances(aidList.get(1));
 				System.out.println("In stock account: ");
+				System.out.println("   - Initial balance: " + balances.get(0));
 				String stock_symbol = "";
 				int num_shares = 0;
 				double buy_price = 0.0f;
@@ -193,7 +218,9 @@ public class Manager {
 						System.out.println(" 	- " + type + " of " + num_shares + " of " + stock_symbol + " at " + sell_price + " was made");
 					}
 				}
-				
+				System.out.println("   - Final balance: " + balances.get(1));
+
+				// Query - Get total earnings
 				
 			}
 			
@@ -207,6 +234,7 @@ public class Manager {
             if (stm2 != null) try { stm2.close(); } catch (SQLException e) {}
             if (stm3 != null) try { stm3.close(); } catch (SQLException e) {}
             if (stm4 != null) try { stm4.close(); } catch (SQLException e) {}
+            if (stm5 != null) try { stm5.close(); } catch (SQLException e) {}
             if (con != null) try { con.close(); } catch (SQLException e) {}
             if (rs != null) try { rs.close(); } catch (SQLException e) {}
 		}
@@ -377,6 +405,7 @@ public class Manager {
 		}
 	}
 	
+	// 8.) Delete Transactions
 	// 8.) Delete transactions 
 	public void deleteTransactions() throws SQLException{
 		Connection con = null;
@@ -407,6 +436,8 @@ public class Manager {
 	}
 	
 	// 9.) Open market for the day
+	
+	// 9.) Open Market
 	public void openMarket() throws SQLException{
 		
 		Connection con = null;
@@ -435,6 +466,8 @@ public class Manager {
 	}
 	
 	// 10.)Close market for the day 
+	
+	// 10.) Close Market
 	public void closeMarket() throws SQLException{
 		
 		Connection con = null;
@@ -482,5 +515,45 @@ public class Manager {
 		}	
 		System.out.println("Market is now closed for the day!");
 		System.out.println();
+	}
+	
+	// Returns initial and final balances for an account aid
+	public ArrayList<Double> getBalances(int aid) throws SQLException{
+		
+		Connection con = null;
+		PreparedStatement stm = null;
+		ResultSet rs = null;
+		ArrayList<Double> balances = new ArrayList<Double>();
+		
+		try {
+			MySQLDB db = new MySQLDB();
+			con = db.getDBConnection();
+		
+			// Query - In market_accounts, update running_balance = running_balance + balance
+			String query = "SELECT tid,aid,balance,date FROM transactions WHERE aid = ? ORDER BY date DESC";
+			stm = con.prepareStatement(query);
+			stm.setInt(1, aid);
+			rs = stm.executeQuery();
+			double balance = 0.0f;
+			if(rs.next()){
+				balance = rs.getDouble("balance");
+				balances.add(balance);
+			}
+			rs.afterLast();
+			if(rs.previous()){
+				balance = rs.getDouble("balance");
+				balances.add(balance);
+			}
+			
+		} catch (SQLException e){
+			
+			System.out.println(e.getMessage());
+			
+		} finally {
+            if (stm != null) try { stm.close(); } catch (SQLException e) {}
+            if (con != null) try { con.close(); } catch (SQLException e) {}
+            if (rs != null) try { rs.close(); } catch (SQLException e) {}
+		}	
+		return balances;
 	}
 }

@@ -121,31 +121,73 @@ public class MySQLDB {
 	
 	// Set a new date to be today's date
 	public void setCurrentDate(Scanner sc) throws SQLException{
+		
 		// Get desired date from user
 		System.out.print("Enter new date with format (YYYY-MM-DD): ");
 		sc.nextLine();
 		String newDate = sc.nextLine();
         Connection connection = null;
         PreparedStatement statement = null;
+        PreparedStatement stm = null;
+        PreparedStatement stm1 = null;
 		// Prepare query and send to DB, updating the new date
        try {
             Class.forName("com.mysql.jdbc.Driver");
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         }
-		String QUERY = "UPDATE general SET time_value = ? WHERE id = 0";
+		
+		
         try {
             connection = DriverManager.getConnection(HOST, USER, PWD);
+            
+    		
+            // Query - Get current date
+            java.sql.Date curDate = this.getCurrentTime();
+			Calendar cal = Calendar.getInstance();
+			cal.setTime(curDate);
+			int month = cal.get(Calendar.MONTH)+1;
+			int year = cal.get(Calendar.YEAR);
+			int day = cal.get(Calendar.DAY_OF_MONTH);
+
+            // Query - Change database stored date
+    		String QUERY = "UPDATE general SET time_value = ? WHERE id = 0";
             statement = connection.prepareStatement(QUERY);
             statement.setDate(1,java.sql.Date.valueOf(newDate));
             statement.executeUpdate();
-            
+           
+            // Get new proposed date
+    		java.sql.Date newSQLDate = java.sql.Date.valueOf(newDate);
+			cal.setTime(newSQLDate);
+			int sqlMonth = cal.get(Calendar.MONTH)+1;
+			int sqlYear = cal.get(Calendar.YEAR);
+			int sqlDay = cal.get(Calendar.DAY_OF_MONTH);
+			
+			String query = "";
+			// Check if month to be changed is same, if so:
+			if( (month == sqlMonth) && (year == sqlYear) ){
+				// Query - Update running_balance = running_balance + (days_diff * balance)
+				int daysDiff = sqlDay - day;
+				query = "UPDATE market_accounts SET running_balance = running_balance + (? * balance)";
+				stm = connection.prepareStatement(query);
+				stm.setInt(1, daysDiff);
+				stm.executeUpdate();
+			}
+			else{
+				 // Otherwise, Query - reset running_balance = balance
+				query = "UPDATE market_accounts SET running_balance = balance";
+				stm1 = connection.prepareStatement(query);
+				stm1.executeUpdate();
+			}
+  
         } catch (SQLException e) {
             e.printStackTrace();
             
         } finally {
             if (statement != null) try { statement.close(); } catch (SQLException e) {}
             if (connection != null) try { connection.close(); } catch (SQLException e) {}
+            if (stm != null) try { stm.close(); } catch (SQLException e) {}
+            if (stm1 != null) try { stm1.close(); } catch (SQLException e) {}
         }
 	}
 

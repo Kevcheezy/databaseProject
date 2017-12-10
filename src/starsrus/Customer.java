@@ -266,6 +266,7 @@ public class Customer {
 						stm9 = con.prepareStatement(query);
 						stm9.setDouble(1,stock_account_balance);
 						stm9.setInt(2, newStockaid);
+						stm9.executeUpdate();
 						System.out.println("New stock account balance: " + String.format("%.3f", stock_account_balance));
 					}
 					
